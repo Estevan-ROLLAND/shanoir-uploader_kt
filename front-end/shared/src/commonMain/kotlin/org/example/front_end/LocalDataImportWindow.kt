@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,25 +36,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import org.example.front_end.common_elements.icons.calendar_month
 import org.example.front_end.common_elements.icons.arrow_forward
 import org.example.front_end.common_elements.icons.arrow_drop_down
 import org.example.front_end.common_elements.bars.MenuBar
 import org.example.front_end.common_elements.bars.NavBar
+import org.example.front_end.common_elements.icons.arrow_drop_up
+import org.example.front_end.common_elements.icons.file_save
 import java.text.SimpleDateFormat
 import java.util.Date
 
 @Composable
-@Preview
 fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
     MaterialTheme {
         Column(
@@ -117,7 +126,6 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                     .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -128,7 +136,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                     Column(
                         modifier = Modifier
                             .background(color = Color.White)
-                            .width(653.dp),
+                            .width(653.dp)
+                            .fillMaxHeight(.7f),
                         ) {
                         when(activeImportType) {
                             "PACS" -> {
@@ -213,7 +222,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     var formattedStudyDate by remember { mutableStateOf("") }
                                     var showStudyDatePickerDialog by remember { mutableStateOf(false) }
 
-                                    var modalityStudy by remember { mutableStateOf("") }
+                                    val modalities = listOf<String>("None","MR","CT", "PT", "NM")
+                                    var modalityStudy by rememberSaveable { mutableStateOf(modalities[0]) }
                                     var showMenuModality by remember { mutableStateOf(false) }
 
 
@@ -387,29 +397,44 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text("Modalité : ")
-
-//                                        TextField(
-//                                            modifier=Modifier.width(350.dp),
-//                                            value = modalityStudy,
-//                                            onValueChange = {modalityStudy = it},
-//                                            trailingIcon = { Icon(
-//                                                imageVector = arrow_drop_down,
-//                                                contentDescription = "",
-//                                                modifier = Modifier
-//                                                    .clickable(onClick = {showMenuModality = !showMenuModality})) }
-//                                        )
-//                                        if (showMenuModality) {
-//                                            ElevatedCard(
-//                                                modifier = Modifier
-//                                                    .padding(top=40.dp)
-//                                                    ,
-//                                                shape = RoundedCornerShape(4.dp),
-//                                                elevation = CardDefaults.elevatedCardElevation(
-//                                                    defaultElevation = 8.dp,
-//                                                    pressedElevation = 12.dp
-//                                                )
-//                                            ) {  }
-//                                        }
+                                        Column {
+                                            val iconDrop  = if (showMenuModality) {
+                                                arrow_drop_up
+                                            } else {
+                                                arrow_drop_down
+                                            }
+                                            TextField(
+                                                modifier=Modifier.width(350.dp),
+                                                value = modalityStudy,
+                                                onValueChange = {modalityStudy = it},
+                                                readOnly = true,
+                                                trailingIcon = { Icon(
+                                                    imageVector = iconDrop,
+                                                    contentDescription = "",
+                                                    modifier = Modifier
+                                                        .clickable(onClick = {
+                                                            showMenuModality = !showMenuModality
+                                                        })) }
+                                            )
+                                            DropdownMenu(
+                                                expanded = showMenuModality,
+                                                onDismissRequest = {showMenuModality = false},
+                                                modifier = Modifier.width(with(
+                                                    LocalDensity.current){
+                                                    350.dp
+                                                })
+                                            ) {
+                                                modalities.forEach { modality ->
+                                                    DropdownMenuItem(
+                                                        text = {Text(modality)},
+                                                        onClick = {
+                                                            modalityStudy = modality
+                                                            showMenuModality = false
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                     Button(
                                         onClick = {},
@@ -477,135 +502,173 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     }
                                 }
 
-
+                                // Add from disk
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(525.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Button(
+                                        modifier = Modifier,
+//                                            .border(
+//                                                width = 2.dp,
+//                                                color = Color(0x67,0x50,0xA4),
+//                                                shape = RoundedCornerShape(20.dp)),
+                                        onClick = {},
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier
+                                                .padding(end = 10.dp),
+                                            imageVector = file_save,
+                                            contentDescription = "")
+                                        Text("Sélectionner un dossier")
+                                    }
+                                }
                             }
                         }
-
-
                     }
 
-                    // Card Verification
+                    /**
+                     * Panel Study Tree
+                     */
+                    Column(
+                        modifier = Modifier
+                            .background(color = Color.White)
+                            .padding(20.dp)
+                            .width(580.dp)
+                            .fillMaxHeight(.7f)
+                    ) {
+                        /**
+                         * Here is the tree with all the studies
+                         */
+                    }
+
+                    /**
+                     * Panel Verification
+                     */
                     Column(
                         modifier = Modifier
                             .background(color = Color.White)
                             .padding(20.dp)
                             .width(550.dp),
                         ) {
-                        Text(
-                            text = "3. Vérification du patient",
-                            fontSize = 30.sp
-                        )
-                        // Form
-                        Column(
-                            modifier = Modifier
-                                .padding(10.dp),
-                            //.width(550.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ){
-                            Row(
+                            Text(
+                                text = "3. Vérification du patient",
+                                fontSize = 30.sp
+                            )
+                            // Form
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Nom : ")
-                                TextField(
-                                    modifier=Modifier.width(350.dp),
-                                    value = "",
-                                    onValueChange = {},
-                                    readOnly = true
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Prénom : ")
-                                TextField(
-                                    modifier=Modifier.width(350.dp),
-                                    value = "",
-                                    onValueChange = {},
-                                    readOnly = true
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Nom de naissance : ")
-                                TextField(
-                                    modifier=Modifier.width(350.dp),
-                                    value = "",
-                                    onValueChange = {},
-                                    readOnly = false
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Date de naissance : ")
-                                TextField(
-                                    modifier=Modifier.width(350.dp),
-                                    value = "",
-                                    onValueChange = {},
-                                    readOnly = true
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-
-                                Text("Sexe :")
+                                    .padding(10.dp),
+                                //.width(550.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ){
                                 Row(
-                                    modifier = Modifier.width(350.dp),
-                                    horizontalArrangement = Arrangement.SpaceAround
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
+                                    Text("Nom : ")
+                                    TextField(
+                                        modifier=Modifier.width(350.dp),
+                                        value = "",
+                                        onValueChange = {},
+                                        readOnly = true
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Prénom : ")
+                                    TextField(
+                                        modifier=Modifier.width(350.dp),
+                                        value = "",
+                                        onValueChange = {},
+                                        readOnly = true
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Nom de naissance : ")
+                                    TextField(
+                                        modifier=Modifier.width(350.dp),
+                                        value = "",
+                                        onValueChange = {},
+                                        readOnly = false
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Date de naissance : ")
+                                    TextField(
+                                        modifier=Modifier.width(350.dp),
+                                        value = "",
+                                        onValueChange = {},
+                                        readOnly = true
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+
+                                    Text("Sexe :")
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.width(350.dp),
+                                        horizontalArrangement = Arrangement.SpaceAround
                                     ) {
-                                        RadioButton(
-                                            selected = true,
-                                            onClick = {},
-                                        )
-                                        Text("Féminin")
-                                    }
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        RadioButton(
-                                            selected = false,
-                                            onClick = {}
-                                        )
-                                        Text("Masculin")
-                                    }
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        RadioButton(
-                                            selected = false,
-                                            onClick = {}
-                                        )
-                                        Text("Autre")
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            RadioButton(
+                                                selected = true,
+                                                onClick = {},
+                                            )
+                                            Text("Féminin")
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = false,
+                                                onClick = {}
+                                            )
+                                            Text("Masculin")
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = false,
+                                                onClick = {}
+                                            )
+                                            Text("Autre")
+                                        }
                                     }
                                 }
+                                Button(
+                                    onClick = {},
+                                ){
+                                    Text("Téléchargement (PACS) ou copier (CD/DVD)")
+                                }
                             }
-                            Button(
-                                onClick = {},
-                            ){
-                                Text("Téléchargement (PACS) ou copier (CD/DVD)")
-                            }
-                        }
                     }
                 }
 
