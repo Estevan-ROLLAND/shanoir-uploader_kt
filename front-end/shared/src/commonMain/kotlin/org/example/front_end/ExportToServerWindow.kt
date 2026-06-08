@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -22,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,16 +41,21 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.rememberWindowState
 import jdk.jfr.Description
+import org.example.front_end.common_elements.bars.CategoryBarElement
 import org.example.front_end.common_elements.bars.MenuBar
 import org.example.front_end.common_elements.icons.arrow_forward
 import org.example.front_end.common_elements.icons.check_box
 import org.example.front_end.common_elements.icons.check_box_outline_blank
 import org.example.front_end.common_elements.icons.close
+import org.example.front_end.common_elements.icons.upload
 import javax.swing.Icon
 
 @Composable
@@ -58,7 +65,13 @@ fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(),
         ) {
-            MenuBar()
+
+            var selectedLines by remember { mutableStateOf("") }
+            var isExportFormOpen by remember { mutableStateOf(false) }
+
+            if (isExportFormOpen) {
+                ExportFormWindow(onClose = { isExportFormOpen = false})
+            }
 
             /**
              * NAV BAR
@@ -114,7 +127,7 @@ fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2000.dp)
+                    .fillMaxHeight(.726f)
                     .padding(20.dp)
                     //.verticalScroll(columnScrollState)
                     .weight(1f,false),
@@ -128,7 +141,6 @@ fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(900.dp)
                         .weight(1f,false),
                 ){
                     val testData = listOf<List<String>>(
@@ -138,71 +150,12 @@ fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
                         listOf("P4","John Doe","IPP_Random","10/08/2019","IRM1","CHECK_OK"),
                         listOf("P5","John Doe","IPP_Random","10/08/2019","IRM1","CHECK_KO"),
                     )
-                    TableScreen(testData)
-                }
+                    TableScreen(tableData = testData,
+                        onSelected = {
 
-                /**
-                 * Export Infos Panel
-                 */
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .background(Color.White),
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    // Download Infos Panel
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(250.dp)
-                            .background(Color.White),
-                        verticalAlignment = Alignment.CenterVertically
-                    ){
-                        // Dowload Infos
-                        Column(
-                            modifier = Modifier
-                                .padding(15.dp, 15.dp)
-                                .width(1400.dp)
-                                .fillMaxHeight()
-                                .border(1.dp, Color.LightGray)
-                        ) {
-                            Text(
-                                text = "Copies ou téléchargement en cours :",
-                                modifier = Modifier.padding(10.dp),
-                            )
-
-                            // TODO() les bar de téléchargements
-                        }
-
-                        Column {
-                            Button(
-                                modifier = Modifier
-                                    .padding(40.dp,0.dp),
-                                onClick = {},
-                                colors = ButtonColors(
-                                    Color(0xCF, 0x00, 0x00), Color.White,
-                                    disabledContainerColor = Color.Gray,
-                                    disabledContentColor = Color.LightGray,
-                                ),
-                                enabled = true // false when no lines are selected
-                            ){
-                                Row(
-                                    modifier = Modifier
-                                        .width(300.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(15.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(imageVector = close, "", modifier = Modifier.width(40.dp).height(40.dp))
-                                    Text("Supprimer les lignes sélectionnées", fontSize = 20.sp)
-                                }
-                            }
-                        }
-                    }
+                    })
                 }
             }
-
-
         }
     }
 }
@@ -273,7 +226,7 @@ fun RowScope.TableCellState(
 }
 
 @Composable
-fun TableScreen(tableData: List<List<String>> = mutableListOf()) {
+fun TableScreen(tableData: List<List<String>> = mutableListOf(), onSelected: () -> Unit) {
     // Each cell of a column must have the same weight.
     val iconColumnWeight = .025f // 5%
     val baseColumnWeight = .1f // 70%
@@ -284,8 +237,8 @@ fun TableScreen(tableData: List<List<String>> = mutableListOf()) {
 
         // Here is the header
         item {
-            Row(Modifier.background(Color(0x89,0x76,0xBC))) {
-                TableCellIcon(check_box_outline_blank,"",iconColumnWeight,{})
+            Row(Modifier.background(Color(0x89,0x76,0xBC)).border(1.dp, Color.Black)) {
+                Box(modifier = Modifier.width(72.dp).border(1.dp,Color.Black))
                 TableCell(text = "ID", weight = baseColumnWeight, align = TextAlign.Center)
                 TableCell(text = "Nom du Patient", weight = baseColumnWeight, align = TextAlign.Center)
                 TableCell(text = "IPP", weight = baseColumnWeight, align = TextAlign.Center)
@@ -325,5 +278,21 @@ fun TableScreen(tableData: List<List<String>> = mutableListOf()) {
                 TableCellIcon(close, weight = iconColumnWeight, onIconClick = {}) // Delete line
             }
         }
+    }
+}
+
+@Composable
+fun ExportFormWindow(onClose: () -> Unit) {
+    val state = rememberWindowState(
+        width = 1000.dp,
+        height = 1000.dp
+    )
+    Window(
+        onCloseRequest = onClose,
+        title = "Exporter les données",
+        state = state,
+        alwaysOnTop = true
+    ) {
+
     }
 }

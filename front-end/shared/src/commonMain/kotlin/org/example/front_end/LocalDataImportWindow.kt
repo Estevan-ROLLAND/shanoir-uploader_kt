@@ -49,10 +49,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import org.example.front_end.common_elements.bars.CategoryBarElement
 import org.example.front_end.common_elements.icons.calendar_month
 import org.example.front_end.common_elements.icons.arrow_forward
 import org.example.front_end.common_elements.icons.arrow_drop_down
@@ -70,8 +72,6 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                 .fillMaxWidth()
         ) {
             var activeImportType by remember { mutableStateOf("PACS") } // Can be set to "PACS" or "Disk"
-
-            MenuBar()
 
             /**
              * NAV BAR
@@ -125,7 +125,6 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight()
                     .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -141,65 +140,26 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                             .background(color = Color.White)
                             .width(653.dp)
                         ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .drawBehind{
+                                    val bordersize = 1.dp.toPx()
+                                    drawLine(
+                                        color = Color.LightGray,
+                                        start = Offset(0f, size.height-2f),
+                                        end = Offset(size.width, size.height-2f),
+                                        strokeWidth = bordersize
+                                    )
+                                },
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            CategoryBarElement("Requêter le PACS", (activeImportType=="PACS"),{activeImportType="PACS"},20.sp, 20)
+                            CategoryBarElement("Ajouter depuis le Disk", (activeImportType == "Disk"),{activeImportType="Disk"}, 20.sp, 20)
+                        }
+
                         when(activeImportType) {
                             "PACS" -> {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .drawBehind{
-                                            val bordersize = 1.dp.toPx()
-                                            drawLine(
-                                                color = Color.LightGray,
-                                                start = Offset(0f, size.height-2f),
-                                                end = Offset(size.width, size.height-2f),
-                                                strokeWidth = bordersize
-                                            )
-                                        },
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable(
-                                                onClick = {}
-                                            )
-                                            .background(Color(0xEA,0xDD,0xFF))
-                                            .drawBehind{
-                                                val bordersize = 4.dp.toPx()
-                                                drawLine(
-                                                    color = Color(0x67,0x50,0xA4),
-                                                    start = Offset(0f, size.height-2f),
-                                                    end = Offset(size.width, size.height-2f),
-                                                    strokeWidth = bordersize
-                                                )
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ){
-                                        Text(
-                                            text = "Requêter le PACS",
-                                            fontSize = 20.sp,
-                                            modifier = Modifier
-                                                .padding(67.dp, 20.dp)
-                                        )
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable(
-                                                onClick = {
-                                                    activeImportType = "Disk"
-                                                }
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ){
-                                        Text(
-                                            text = "Ajouter depuis le Disk",
-                                            fontSize = 20.sp,
-                                            modifier = Modifier
-                                                .padding(67.dp, 20.dp)
-                                        )
-                                    }
-                                }
-
                                 // Form
                                 Column(
                                     modifier = Modifier
@@ -208,8 +168,6 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     verticalArrangement = Arrangement.spacedBy(15.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    var RBtnSelected by remember { mutableStateOf(true) }
-
                                     var namePatient by remember { mutableStateOf("") }
 
                                     var idPatient by remember { mutableStateOf("") }
@@ -429,68 +387,12 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                             }
 
                             "Disk" -> {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .drawBehind{
-                                            val bordersize = 1.dp.toPx()
-                                            drawLine(
-                                                color = Color.LightGray,
-                                                start = Offset(0f, size.height-2f),
-                                                end = Offset(size.width, size.height-2f),
-                                                strokeWidth = bordersize
-                                            )
-                                        },
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable(
-                                                onClick = {
-                                                    activeImportType = "PACS"
-                                                }
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ){
-                                        Text(
-                                            text = "Requêter le PACS",
-                                            fontSize = 20.sp,
-                                            modifier = Modifier
-                                                .padding(67.dp, 20.dp)
-                                        )
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .clickable(
-                                                onClick = {}
-                                            )
-                                            .background(Color(0xEA,0xDD,0xFF))
-                                            .drawBehind{
-                                                val bordersize = 4.dp.toPx()
-                                                drawLine(
-                                                    color = Color(0x67,0x50,0xA4),
-                                                    start = Offset(0f, size.height-2f),
-                                                    end = Offset(size.width, size.height-2f),
-                                                    strokeWidth = bordersize
-                                                )
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ){
-                                        Text(
-                                            text = "Ajouter depuis le Disk",
-                                            fontSize = 20.sp,
-                                            modifier = Modifier
-                                                .padding(67.dp, 20.dp)
-                                        )
-                                    }
-                                }
 
                                 // Add from disk
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(525.dp),
+                                        .height(579.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
@@ -510,28 +412,68 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                     }
 
                     /**
+                     * When the selected profile is "OFSEP", the verification panel is displayed. Otherwise, it is hidden
+                     *  and the Tree panel becomes wider. The import button is at the bottom of the tree panel.
+                     */
+
+                    val profile = "OFSEP"
+                    var treePanelWidth = .99f
+                    if (profile=="OFSEP") {
+                        treePanelWidth = .49f
+                    }
+
+                    /**
                      * Panel Study Tree
                      */
                     Column(
                         modifier = Modifier
                             .background(color = Color.White)
                             .padding(20.dp)
-                            .width(580.dp)
-                            .fillMaxHeight(.7f)
+                            .fillMaxWidth(treePanelWidth)
+                            .fillMaxHeight(.7f),
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         /**
                          * Here is the tree with all the studies
                          */
+                        Column {  }
+
+
+                        if (profile != "OFSEP") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .drawBehind{
+                                        val bordersize = 1.dp.toPx()
+                                        drawLine(
+                                            color = Color.LightGray,
+                                            start = Offset(0f, -2f),
+                                            end = Offset(size.width, -2f),
+                                            strokeWidth = bordersize
+                                        )
+                                    },
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Button(
+                                    onClick = {},
+                                ) {
+                                    Text("Importer l'examen")
+                                }
+                            }
+                        }
                     }
 
-                    /**
-                     * Panel Verification
-                     */
-                    Column(
-                        modifier = Modifier
-                            .background(color = Color.White)
-                            .padding(20.dp)
-                            .width(550.dp),
+
+
+                    if(profile == "OFSEP") {
+                        /**
+                         * Panel Verification
+                         */
+                        Column(
+                            modifier = Modifier
+                                .background(color = Color.White)
+                                .padding(20.dp)
+                                .width(550.dp),
                         ) {
                             Text(
                                 text = "3. Vérification du patient",
@@ -620,52 +562,13 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     Text("Téléchargement (PACS) ou copier (CD/DVD)")
                                 }
                             }
+                        }
                     }
                 }
 
                 // Download Infos Panel
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .background(Color.White),
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    // Dowload Infos
-                    Column(
-                        modifier = Modifier
-                            .padding(15.dp, 15.dp)
-                            .width(1400.dp)
-                            .fillMaxHeight()
-                            .border(1.dp, Color.LightGray)
-                    ) {
-                        Text(
-                            text = "Copies ou téléchargement en cours :",
-                            modifier = Modifier.padding(10.dp),
-                        )
 
-                        // TODO() les bar de téléchargements
-                    }
-
-                    Button(
-                        modifier = Modifier
-                            .padding(40.dp,0.dp),
-                        onClick = {onNavBarSwitch()},
-                    ){
-                        Row(
-                            modifier = Modifier
-                                .width(300.dp),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Voir les imports", fontSize = 30.sp)
-                            Icon(imageVector = arrow_forward, "", modifier = Modifier.width(40.dp).height(40.dp))
-                        }
-
-                    }
-                }
             }
-
         }
     }
 }
