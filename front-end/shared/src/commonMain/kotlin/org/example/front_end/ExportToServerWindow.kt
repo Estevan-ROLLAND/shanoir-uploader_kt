@@ -59,7 +59,7 @@ import org.example.front_end.common_elements.icons.upload
 import javax.swing.Icon
 
 @Composable
-fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
+fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
     MaterialTheme {
         Column(
             modifier = Modifier
@@ -68,10 +68,6 @@ fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
 
             var selectedLines by remember { mutableStateOf("") }
             var isExportFormOpen by remember { mutableStateOf(false) }
-
-            if (isExportFormOpen) {
-                ExportFormWindow(onClose = { isExportFormOpen = false})
-            }
 
             /**
              * NAV BAR
@@ -143,17 +139,19 @@ fun ExportToServerWindow(onNavBarSwitch: () -> Unit) {
                         .fillMaxWidth()
                         .weight(1f,false),
                 ){
-                    val testData = listOf<List<String>>(
-                        listOf("P1","John Doe","IPP_Random","10/08/2019","IRM1","FINISHED"),
-                        listOf("P2","John Doe","IPP_Random","10/08/2019","IRM1","ERROR"),
-                        listOf("P3","John Doe","IPP_Random","10/08/2019","IRM1","READY"),
-                        listOf("P4","John Doe","IPP_Random","10/08/2019","IRM1","CHECK_OK"),
-                        listOf("P5","John Doe","IPP_Random","10/08/2019","IRM1","CHECK_KO"),
-                    )
+                    val testData = viewModel.testData
                     TableScreen(tableData = testData,
-                        onSelected = {
-
-                    })
+                        onSelected = { data : List<String> ->
+                            if (!viewModel.selectedLines.contains(data))
+                                viewModel.selectedLines.add(data)
+                            println(viewModel.getNbSelectedLines())
+                        },
+                        onUnselected = { data ->
+                            if (viewModel.selectedLines.contains(data))
+                                viewModel.selectedLines.remove(data)
+                            println(viewModel.getNbSelectedLines())
+                        }
+                    )
                 }
             }
         }
@@ -226,7 +224,7 @@ fun RowScope.TableCellState(
 }
 
 @Composable
-fun TableScreen(tableData: List<List<String>> = mutableListOf(), onSelected: () -> Unit) {
+fun TableScreen(tableData: List<List<String>> = mutableListOf(), onSelected: (List<String>) -> Unit, onUnselected: (List<String>) -> Unit) {
     // Each cell of a column must have the same weight.
     val iconColumnWeight = .025f // 5%
     val baseColumnWeight = .1f // 70%
@@ -257,9 +255,11 @@ fun TableScreen(tableData: List<List<String>> = mutableListOf(), onSelected: () 
             if (isRowSelected) {
                 iconCheckbox = check_box
                 backroundColor = Color(0xEA,0xDD,0xFF)
+                onSelected(lineData)
             } else {
                 iconCheckbox = check_box_outline_blank
                 backroundColor = Color.White
+                onUnselected(lineData)
             }
 
 
@@ -278,21 +278,5 @@ fun TableScreen(tableData: List<List<String>> = mutableListOf(), onSelected: () 
                 TableCellIcon(close, weight = iconColumnWeight, onIconClick = {}) // Delete line
             }
         }
-    }
-}
-
-@Composable
-fun ExportFormWindow(onClose: () -> Unit) {
-    val state = rememberWindowState(
-        width = 1000.dp,
-        height = 1000.dp
-    )
-    Window(
-        onCloseRequest = onClose,
-        title = "Exporter les données",
-        state = state,
-        alwaysOnTop = true
-    ) {
-
     }
 }

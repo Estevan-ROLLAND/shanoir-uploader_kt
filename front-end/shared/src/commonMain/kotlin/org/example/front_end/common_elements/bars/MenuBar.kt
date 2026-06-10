@@ -1,76 +1,191 @@
 package org.example.front_end.common_elements.bars
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonElevation
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import front_end.shared.generated.resources.Res
+import front_end.shared.generated.resources.logoShUp
+import org.example.front_end.common_elements.icons.info
+import org.example.front_end.common_elements.icons.menu
+import org.example.front_end.common_elements.icons.settings
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun MenuBar() {
-    var isMenuOpened by remember { mutableStateOf(false) }
+    var isDropDownMenuOpened by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(2.dp, Color.Gray)
+            .padding(horizontal = 15.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        TextButton(
-            onClick = { },
-            shape = MaterialTheme.shapes.small,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-        ) {
-            Text(text = "Fichier", fontSize = 15.sp)
-        }
-        TextButton(
-            onClick = { isMenuOpened = true },
-            shape = MaterialTheme.shapes.small,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-        ) {
-            Text(text = "Configuration", fontSize = 15.sp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ){
+            /**
+             * Shanoir Logo
+             */
+            Image(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(
+                        shape = RoundedCornerShape(20.dp)
+                    ),
+                painter = painterResource(Res.drawable.logoShUp),
+                contentDescription = ""
+            )
+
+
+            Text(
+                text = "ShanoirUploader",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0x67,0x50,0xA4)
+            )
         }
 
-        if (isMenuOpened) {
-            ConfigurationDialogWindow({isMenuOpened = false})
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(30.dp)
+        ) {
+            Text(
+                text = "Profil : [Type du profil]"
+            )
+
+            IconButton(
+                onClick = {
+                    isDropDownMenuOpened = !isDropDownMenuOpened
+                },
+                shape = IconButtonDefaults.smallSquareShape
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .size(32.dp),
+                    imageVector = menu,
+                    contentDescription = "",
+                    tint = Color(0x67,0x50,0xA4)
+                )
+
+                DropDownMenuShUp(
+                    isOpened = isDropDownMenuOpened,
+                    onDismiss = {
+                        isDropDownMenuOpened = false
+                    }
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit) {
+    var isConfigurationMenuOpened by remember { mutableStateOf(false) }
+
+    DropdownMenu(
+        expanded = isOpened,
+        onDismissRequest = onDismiss
+    ){
+        // File
+        DropdownMenuItem(
+            onClick = {},
+            text = {
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = "Fichier",
+                    fontSize = 15.sp,
+                    color = Color(0x67,0x50,0xA4),
+                )
+            }
+        )
+
+        // Configuration
+        DropdownMenuItem(
+            onClick = {
+                isConfigurationMenuOpened = true
+            },
+            text = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = settings,
+                        contentDescription = "",
+                        tint = Color(0x67,0x50,0xA4),
+                    )
+
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = "Configuration",
+                        fontSize = 15.sp,
+                        color = Color(0x67,0x50,0xA4)
+                    )
+                }
+
+            }
+        )
+
+        // About ShUp
+        DropdownMenuItem(
+            onClick = {},
+            text = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = info,
+                        contentDescription = "",
+                        tint = Color(0x67,0x50,0xA4),
+                    )
+
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = "A propos",
+                        fontSize = 15.sp,
+                        color = Color(0x67,0x50,0xA4)
+                    )
+                }
+            }
+        )
+    }
+
+    if (isConfigurationMenuOpened) {
+        ConfigurationDialogWindow({isConfigurationMenuOpened = false})
     }
 }
 

@@ -12,6 +12,7 @@ import org.example.front_end.common_elements.bars.MenuBar
 @Composable
 fun WindowsHandler() {
     var currentScreen by remember { mutableStateOf(Windows.LOGIN)}
+    val viewModel = ViewModelShUp()
 
     Column {
         MenuBar()
@@ -29,6 +30,7 @@ fun WindowsHandler() {
             )
 
             Windows.EXPORT -> ExportToServerWindow(
+                viewModel = viewModel,
                 onNavBarSwitch = {
                     currentScreen = Windows.IMPORT
                 }
@@ -37,6 +39,7 @@ fun WindowsHandler() {
 
         BottomInfoBar(
             currentScreen = currentScreen,
+            viewModel = viewModel,
             onScreenChange = {
                 currentScreen = Windows.EXPORT
             })

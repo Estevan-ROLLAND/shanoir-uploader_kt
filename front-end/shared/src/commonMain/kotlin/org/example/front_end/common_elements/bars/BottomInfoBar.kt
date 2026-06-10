@@ -1,8 +1,10 @@
 package org.example.front_end.common_elements.bars
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,30 +12,43 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults.buttonColors
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jdk.jfr.Percentage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.example.front_end.ExportFormWindow
+import org.example.front_end.ViewModelShUp
 import org.example.front_end.Windows
 import org.example.front_end.WindowsHandler
 import org.example.front_end.common_elements.icons.arrow_forward
@@ -43,7 +58,7 @@ import java.io.File
 import java.io.InputStream
 
 @Composable
-fun BottomInfoBar(currentScreen: Windows, onScreenChange: () -> Unit) {
+fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChange: () -> Unit) {
     when(currentScreen) {
         Windows.LOGIN -> {}
 
@@ -102,12 +117,24 @@ fun BottomInfoBar(currentScreen: Windows, onScreenChange: () -> Unit) {
                                 when(currentScreen){
                                     Windows.IMPORT -> {
                                         // TODO() les bar de téléchargements
+                                        LinearDeterminateIndicator()
                                     }
 
                                     Windows.EXPORT -> {
 
-                                    }
+                                        var importedLines by remember { mutableStateOf(viewModel.testData.size) }
 
+                                        LazyColumn(
+                                            modifier = Modifier.padding(horizontal = 10.dp)
+                                        ) {
+                                            item {
+                                                Text("Examens importés : $importedLines")
+                                            }
+                                            item{
+                                                Text("Examens en erreur : ")
+                                            }
+                                        }
+                                    }
 
                                     else -> {}
                                 }
@@ -132,7 +159,42 @@ fun BottomInfoBar(currentScreen: Windows, onScreenChange: () -> Unit) {
                             .padding(vertical = 15.dp)
                             .border(1.dp, Color.LightGray)
                     ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp)
+                        ) {
+                            var statusPACS by remember { mutableStateOf("unstable") }
+                            var statusColor by remember { mutableStateOf(Color.Green) }
+                            var statusText by remember { mutableStateOf("") }
 
+                            Text("Connexion avec le PACS distant :")
+                            Row(
+                                modifier = Modifier.padding(vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                when(statusPACS) {
+                                    "stable" -> {
+                                        statusColor = Color(0x29,0xCF,0x00)
+                                        statusText = "Connexion stable"
+                                    }
+
+                                    "unstable" -> {
+                                        statusColor = Color(0xFF,0x78,0x02)
+                                        statusText = "Connexion instable"
+                                    }
+
+                                    "down" -> {
+                                        statusColor = Color(0xCF,0x00,0x00)
+                                        statusText = "Connexion perdue"
+                                    }
+                                }
+
+                                Canvas(modifier = Modifier.size(15.dp)) {
+                                    drawCircle(statusColor)
+                                }
+                                Text(statusText)
+                            }
+                        }
                     }
 
                     when(currentScreen) {
@@ -162,13 +224,17 @@ fun BottomInfoBar(currentScreen: Windows, onScreenChange: () -> Unit) {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
+                                var isExportFormOpened by remember { mutableStateOf(false) }
+
                                 /**
                                  * Import Selected Lines Button
                                  */
                                 Button(
                                     modifier = Modifier
                                         .padding(40.dp,0.dp),
-                                    onClick = {},
+                                    onClick = {
+                                        isExportFormOpened = !isExportFormOpened
+                                    },
                                     colors = ButtonColors(
                                         Color(0x29,0xCF,0x00), Color.White,
                                         disabledContainerColor = Color.Gray,
@@ -194,7 +260,7 @@ fun BottomInfoBar(currentScreen: Windows, onScreenChange: () -> Unit) {
                                     modifier = Modifier
                                         .padding(40.dp,0.dp),
                                     onClick = {
-                                        currentScreen
+
                                     },
                                     colors = ButtonColors(
                                         Color(0xCF, 0x00, 0x00), Color.White,
@@ -212,6 +278,12 @@ fun BottomInfoBar(currentScreen: Windows, onScreenChange: () -> Unit) {
                                         Icon(imageVector = close, "", modifier = Modifier.width(40.dp).height(40.dp))
                                         Text("Supprimer les lignes sélectionnées", fontSize = 20.sp)
                                     }
+                                }
+
+                                if (isExportFormOpened){
+                                    ExportFormWindow(
+                                        onClose = { isExportFormOpened = false }
+                                    )
                                 }
                             }
                         }
@@ -246,5 +318,92 @@ fun Logs() {
         items(lineList){ lineText ->
             Text(lineText)
         }
+    }
+}
+
+@Composable
+fun DownloadBar(percentage: Int = 1) {
+    val progressFactor by remember(percentage) {mutableStateOf(percentage * 0.01f)}
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(8.dp)
+                .width(400.dp)
+                .height(20.dp)
+                .border(width = 4.dp,
+                    color = Color(0x67,0x50,0xA4),
+                    shape = RoundedCornerShape(50.dp)
+                )
+                .clip(RoundedCornerShape(
+                    topStartPercent = 50,
+                    topEndPercent = 50,
+                    bottomEndPercent = 50,
+                    bottomStartPercent = 50
+                ))
+                .background(Color.Transparent),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth(progressFactor)
+                    .background(color = Color(0x67,0x50,0xA4)),
+                enabled = true,
+                elevation = null,
+                colors = buttonColors(
+                    containerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent
+                )
+            ){ }
+        }
+
+        Text(
+            text = "${percentage} %",
+            fontSize = 20.sp
+        )
+    }
+
+}
+
+
+@Composable
+fun LinearDeterminateIndicator() {
+    var currentProgress by remember { mutableFloatStateOf(0f) }
+    var loading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope() // Create a coroutine scope
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Button(onClick = {
+            loading = true
+            scope.launch {
+                loadProgress { progress ->
+                    currentProgress = progress
+                }
+                loading = false // Reset loading when the coroutine finishes
+            }
+        }, enabled = !loading) {
+            Text("Start loading")
+        }
+
+        if (loading) {
+            LinearProgressIndicator(
+                progress = { currentProgress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/** Iterate the progress value */
+suspend fun loadProgress(updateProgress: (Float) -> Unit) {
+    for (i in 1..100) {
+        updateProgress(i.toFloat() / 100)
+        delay(100)
     }
 }

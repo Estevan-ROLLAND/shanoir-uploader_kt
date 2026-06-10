@@ -29,11 +29,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -61,6 +65,7 @@ import org.example.front_end.common_elements.icons.arrow_drop_down
 import org.example.front_end.common_elements.bars.MenuBar
 import org.example.front_end.common_elements.icons.arrow_drop_up
 import org.example.front_end.common_elements.icons.file_save
+import org.example.front_end.common_elements.icons.info
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -196,7 +201,16 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         val requestTypeRadioOptions = listOf("Patient", "Etude")
                                         val selectedReqTypeOption = remember { mutableStateOf(requestTypeRadioOptions[0]) }
 
-                                        Text("Niveau de requête :")
+                                        Row {
+                                            Text("Niveau de requête : ")
+                                            TooltipBox(
+                                                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                                                tooltip = { PlainTooltip { Text("Sélectionner en fonction de la configuration du PACS") } },
+                                                state = rememberTooltipState()
+                                            ) {
+                                                Icon(info, "")
+                                            }
+                                        }
 
                                         RadioButtonGroup(requestTypeRadioOptions, selectedReqTypeOption)
                                     }
@@ -206,7 +220,16 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Nom du patient : ")
+                                        Row {
+                                            Text("Nom, Prénom du patient : ")
+                                            TooltipBox(
+                                                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                                                tooltip = { PlainTooltip { Text("Nom et prénoms doivent être séparés par une virgule. Seules les premières lettres du nom suffisent") } },
+                                                state = rememberTooltipState()
+                                            ) {
+                                                Icon(info, "")
+                                            }
+                                        }
                                         TextField(
                                             modifier=Modifier.width(350.dp),
                                             value = namePatient,
@@ -219,6 +242,7 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
+
                                         Text("ID du patient : ")
                                         TextField(
                                             modifier=Modifier.width(350.dp),
@@ -278,7 +302,16 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Description de l'étude : ")
+                                        Row {
+                                            Text("Description de l'étude : ")
+                                            TooltipBox(
+                                                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                                                tooltip = { PlainTooltip { Text("Nom de l'examen, un seul mot suffit, en respectant la casse") } },
+                                                state = rememberTooltipState()
+                                            ) {
+                                                Icon(info, "")
+                                            }
+                                        }
                                         TextField(
                                             modifier=Modifier.width(350.dp),
                                             value = descStudy,
