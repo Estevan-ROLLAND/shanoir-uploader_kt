@@ -22,7 +22,7 @@ class ViewModelShUp : ViewModel() {
     var errorLines = mutableListOf<List<String>>()
     var selectedLines by mutableStateOf(mutableListOf<List<String>>())
 
-    var DICOMConfigplaceholder = Pair(mutableMapOf("AET" to "ORTHANC", "HostAddress" to "127.0.0.0", "Port" to "9042"), mutableMapOf("LocalAET" to "SHANOIR", "LocalAddress" to "127.0.0.0", "LocalPort" to "4242"))
+    var DICOMConfigplaceholder = Pair(mutableMapOf("AET" to "ORTHANC", "HostAddress" to "localhost", "Port" to "4242"), mutableMapOf("LocalAET" to "SHANOIR", "LocalAddress" to "localhost", "LocalPort" to "44105"))
         private set
 
     val client = HttpClient()

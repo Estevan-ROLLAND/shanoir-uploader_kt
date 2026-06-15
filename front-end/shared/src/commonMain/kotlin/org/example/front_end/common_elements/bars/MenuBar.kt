@@ -7,11 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -34,19 +36,25 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.platform.Font
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import front_end.shared.generated.resources.Res
 import front_end.shared.generated.resources.logoShUp
+import org.example.front_end.common_elements.icons.cancel
 import org.example.front_end.common_elements.icons.check
+import org.example.front_end.common_elements.icons.close
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.icons.menu
 import org.example.front_end.common_elements.icons.settings
 import org.example.front_end.viewmodel.ViewModelShUp
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun MenuBar(viewModel: ViewModelShUp) {
@@ -360,6 +368,12 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
         state = state,
         alwaysOnTop = true
     ) {
+        var isDistantPACSConnected by remember { mutableStateOf(false) }
+
+        var isErrorWindowOpened by remember { mutableStateOf(false) }
+        var isVerificationDialogOpened by remember { mutableStateOf(false) }
+        var isValidationDialogOpened by remember { mutableStateOf(false) }
+
         Column(
             modifier = Modifier
                 .padding(20.dp)
@@ -449,7 +463,8 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                 modifier = Modifier
                     .width(600.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
+            )
+            {
                 Text(
                     text = "Paramètres de configuration du PACS local :",
                     fontSize = 25.sp,
@@ -517,22 +532,65 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                 }
             }
 
+            /**
+             * Verifications and Configuration Buttons
+             */
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+
                 Button(
-                    onClick = {}
+                    onClick = {
+                        if (!isDistantPACSConnected) {
+                            isErrorWindowOpened = true
+                        } else {
+                            isVerificationDialogOpened = true
+                        }
+                    }
                 ){
                     Text("Vérifier la connexion au PACS distant")
                 }
 
                 Button(
-                    onClick = {}
+                    onClick = {
+                        if (!isDistantPACSConnected) {
+                            isErrorWindowOpened = true
+                        } else {
+                            isValidationDialogOpened = true
+                        }
+                    }
                 ) {
                     Text("Configurer le serveur")
+                }
+
+                if (isErrorWindowOpened) {
+                    PACSConnectionFailed(
+                        onClose = {
+                            isErrorWindowOpened = false
+                        }
+                    )
+
+                }
+
+                if (isVerificationDialogOpened) {
+                    PACSVerification(
+                        onClose = {
+                            isVerificationDialogOpened = false
+                        }
+                    )
+
+                }
+
+                if (isValidationDialogOpened) {
+                    PACSConfigValidation(
+                        onClose = {
+                            isValidationDialogOpened = false
+                            onDismiss()
+                        }
+                    )
                 }
             }
 
@@ -550,6 +608,159 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                 /**
                  * Here will be the logs from the connection verification
                  */
+            }
+        }
+    }
+}
+
+@Composable
+fun PACSConfigValidation(onClose: () -> Unit) {
+    Dialog(
+        title = "Serveur configuré !",
+        state = DialogState(
+            width = 500.dp,
+            height = 180.dp
+        ),
+        onCloseRequest = onClose
+    ){
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 15.dp),
+            horizontalAlignment = Alignment.End
+        )
+        {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            )
+            {
+                Icon(
+                    modifier = Modifier
+                        .size(48.dp),
+                    imageVector = info,
+                    contentDescription = ""
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 15.dp)
+                ) {
+                    Text(
+                        text = "Félicitations ! La connexion au PACS est configurée",
+                    )
+                    Text(
+                        text = "Redémarrez l'application ShanoirUploader",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Button(
+                onClose
+            ){
+                Text("OK")
+            }
+        }
+    }
+}
+
+@Composable
+fun PACSConnectionFailed(onClose: () -> Unit){
+    Dialog(
+        title = "Connexion échouée !",
+        state = DialogState(
+            width = 500.dp,
+            height = 155.dp
+        ),
+        onCloseRequest = onClose
+    )
+    {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 15.dp),
+            horizontalAlignment = Alignment.End
+        )
+        {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            )
+            {
+                Icon(
+                    modifier = Modifier
+                        .size(48.dp),
+                    imageVector = cancel,
+                    tint = Color(0xCF, 0x00, 0x00),
+                    contentDescription = ""
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 15.dp)
+                ) {
+                    Text(
+                        text = "Connexion au PACS distant échouée",
+                    )
+                }
+            }
+            Button(
+                onClose
+            ){
+                Text("OK")
+            }
+        }
+    }
+}
+
+
+@Composable
+fun PACSVerification(onClose: () -> Unit){
+    Dialog(
+        title = "Connexion échouée !",
+        state = DialogState(
+            width = 500.dp,
+            height = 155.dp
+        ),
+        onCloseRequest = onClose
+    )
+    {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 15.dp),
+            horizontalAlignment = Alignment.End
+        )
+        {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            )
+            {
+                Icon(
+                    modifier = Modifier
+                        .size(48.dp),
+                    imageVector = cancel,
+                    tint = Color(0xCF, 0x00, 0x00),
+                    contentDescription = ""
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 15.dp)
+                ) {
+                    Text(
+                        text = "Connexion au PACS distant échouée",
+                    )
+                }
+            }
+            Button(
+                onClose
+            ){
+                Text("OK")
             }
         }
     }
