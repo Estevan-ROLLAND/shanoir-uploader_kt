@@ -21,6 +21,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("io.ktor:ktor-client-core:${ktor_version}")
             implementation("io.ktor:ktor-client-cio:${ktor_version}")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

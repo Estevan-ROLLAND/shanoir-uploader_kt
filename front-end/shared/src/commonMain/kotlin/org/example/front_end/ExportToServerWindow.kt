@@ -1,28 +1,26 @@
 package org.example.front_end
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -42,8 +40,6 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(),
         ) {
-
-            var selectedLines by remember { mutableStateOf("") }
 
             /**
              * NAV BAR
@@ -95,7 +91,6 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
             /**
              * WINDOW CONTENT
              */
-            var columnScrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -108,22 +103,22 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
                 //var lineSelected by remember {mutableStateOf(mutableListOf())}
 
                 /**
-                 * Imported Data Tab
+                 * Imported Data Table
                  */
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f,false),
                 ){
-                    val testData = viewModel.testData
-                    TableScreen(tableData = testData,
-                        onSelected = { data : List<String> ->
+                    TableScreen(
+                        viewModel = viewModel,
+                        onSelected = { data: List<String> ->
                             viewModel.addLine(data)
-                            println("Nb Lignes selectionnées : ${viewModel.selectedLines.size}")
+                            println("Added - Nb Lignes selectionnées : ${viewModel.selectedLines.size} ; all selected lines : ${viewModel.selectedLines}")
                         },
-                        onUnselected = { data ->
+                        onUnselected = { data: List<String> ->
                             viewModel.removeLine(data)
-                            println(viewModel.getNbSelectedLines())
+                            println("Removed - Nb Lignes selectionnées : ${viewModel.selectedLines.size} ; all selected lines : ${viewModel.selectedLines}")
                         }
                     )
                 }
@@ -136,20 +131,154 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
 // Posted by nglauber
 // Retrieved 2026-06-05, License - CC BY-SA 4.0
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, onUnselected: (List<String>) -> Unit) {
+    val filters = remember { mutableStateListOf("", "", "", "", "", "") }
+    val columnWeights = listOf(.12f, .23f, .16f, .16f, .14f, .13f)
+    val iconColumnWeight = .06f
+
+    // Filtered data based on the filters
+    val visibleData = viewModel.testData.filter { lineData ->
+        lineData.indices.all { index ->
+            val query = filters.getOrNull(index).orEmpty().trim()
+            query.isEmpty() || lineData[index].contains(query, ignoreCase = true)
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            item {
+                // Header Row
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Color(0x89, 0x76, 0xBC))
+                        .border(1.dp, Color.Black)
+                ) {
+                    TableCellIcon(check_box_outline_blank, "Sélectionner", iconColumnWeight, {})
+                    TableHeaderCell("ID", columnWeights[0])
+                    TableHeaderCell("Nom du patient", columnWeights[1])
+                    TableHeaderCell("IPP", columnWeights[2])
+                    TableHeaderCell("Date de l'étude", columnWeights[3])
+                    TableHeaderCell("IRM", columnWeights[4])
+                    TableHeaderCell("État", columnWeights[5])
+                    TableCellIcon(close, "Supprimer", iconColumnWeight, {})
+                }
+            }
+
+            items(visibleData, key = { it.firstOrNull().orEmpty() }) { lineData ->
+                val isSelected = viewModel.selectedLines.contains(lineData)
+                val iconCheckbox = if (isSelected) check_box else check_box_outline_blank
+                val backgroundColor = if (isSelected) Color(0xEA, 0xDD, 0xFF) else Color.White
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(backgroundColor)
+                ) {
+                    TableCellIcon(
+                        iconCheckbox,
+                        if (isSelected) "Désélectionner" else "Sélectionner",
+                        iconColumnWeight,
+                        onIconClick = {
+                            if (isSelected) onUnselected(lineData) else onSelected(lineData)
+                        }
+                    )
+                    TableCell(lineData.getOrNull(0).orEmpty(), columnWeights[0])
+                    TableCell(lineData.getOrNull(1).orEmpty(), columnWeights[1])
+                    TableCell(lineData.getOrNull(2).orEmpty(), columnWeights[2])
+                    TableCell(lineData.getOrNull(3).orEmpty(), columnWeights[3])
+                    TableCell(lineData.getOrNull(4).orEmpty(), columnWeights[4])
+                    TableCellState(lineData.getOrNull(5).orEmpty(), columnWeights[5])
+                    TableCellIcon(
+                        close,
+                        "Supprimer la ligne",
+                        iconColumnWeight,
+                        onIconClick = {
+                            viewModel.deleteLine(lineData)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RowScope.TableHeaderCell(
+    title: String,
+    weight: Float,
+) {
+    Column(
+        modifier = Modifier
+            .weight(weight)
+            .border(1.dp, Color.Black)
+            .padding(8.dp)
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier
+                .fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun RowScope.TableFilterCell(
+    value: String,
+    weight: Float,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text("Filtrer") },
+        singleLine = true,
+        modifier = Modifier
+            .weight(weight)
+            .border(1.dp, Color.Black)
+            .padding(4.dp)
+    )
+}
+
 @Composable
 fun RowScope.TableCell(
     text: String,
     weight: Float,
-    align: TextAlign = TextAlign.Start
-) {
-    Text(
-        text = text,
-        modifier = Modifier
-            .border(1.dp, Color.Black)
-            .weight(weight)
-            .padding(8.dp),
-        textAlign = align
-    )
+    align: TextAlign = TextAlign.Start,
+    clickable: Boolean = false,
+    filter: () -> Unit = {}
+)
+{
+    if (clickable){
+        Text(
+            text = text,
+            modifier = Modifier
+                .border(1.dp, Color.Black)
+                .weight(weight)
+                .clickable(
+                    true,
+                    onClick = filter
+                )
+                .padding(8.dp),
+            textAlign = align
+        )
+    } else {
+        Text(
+            text = text,
+            modifier = Modifier
+                .border(1.dp, Color.Black)
+                .weight(weight)
+                .padding(8.dp),
+            textAlign = align
+        )
+    }
 }
 
 @Composable
@@ -158,7 +287,8 @@ fun RowScope.TableCellIcon(
     contentDescription: String = "",
     weight: Float,
     onIconClick: () -> Unit
-) {
+)
+{
        Icon(
            imageVector = icon,
            contentDescription = contentDescription,
@@ -176,7 +306,8 @@ fun RowScope.TableCellIcon(
 fun RowScope.TableCellState(
     state: String,
     weight: Float,
-) {
+)
+{
     var backgroundColor = Color.White
 
     when(state) {
@@ -195,62 +326,4 @@ fun RowScope.TableCellState(
             .background(backgroundColor)
             .padding(8.dp),
     )
-}
-
-@Composable
-fun TableScreen(tableData: List<List<String>> = mutableListOf(), onSelected: (List<String>) -> Unit, onUnselected: (List<String>) -> Unit) {
-    // Each cell of a column must have the same weight.
-    val iconColumnWeight = .025f // 5%
-    val baseColumnWeight = .1f // 70%
-    // The LazyColumn will be our table. Notice the use of the weights below
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        ) {
-
-        // Here is the header
-        item {
-            Row(Modifier.background(Color(0x89,0x76,0xBC)).border(1.dp, Color.Black)) {
-                Box(modifier = Modifier.width(72.dp).border(1.dp,Color.Black))
-                TableCell(text = "ID", weight = baseColumnWeight, align = TextAlign.Center)
-                TableCell(text = "Nom du Patient", weight = baseColumnWeight, align = TextAlign.Center)
-                TableCell(text = "IPP", weight = baseColumnWeight, align = TextAlign.Center)
-                TableCell(text = "Date de l'étude", weight = baseColumnWeight, align = TextAlign.Center)
-                TableCell(text = "IRM", weight = baseColumnWeight, align = TextAlign.Center)
-                TableCell(text = "Etat", weight = baseColumnWeight, align = TextAlign.Center)
-                TableCellIcon(close,"",iconColumnWeight,{})
-            }
-        }
-        // Here are all the lines of your table.
-        items(tableData) { lineData ->
-            var iconCheckbox by remember { mutableStateOf(check_box_outline_blank) }
-            var backroundColor by remember{ mutableStateOf(Color.White) }
-            var isRowSelected by remember { mutableStateOf(false) }
-
-            if (isRowSelected) {
-                iconCheckbox = check_box
-                backroundColor = Color(0xEA,0xDD,0xFF)
-                onSelected(lineData)
-            } else {
-                iconCheckbox = check_box_outline_blank
-                backroundColor = Color.White
-                onUnselected(lineData)
-            }
-
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(backroundColor)
-            ) {
-                TableCellIcon(iconCheckbox, weight = iconColumnWeight, onIconClick = {isRowSelected = !isRowSelected}) // Checkbox
-                TableCell(lineData[0], weight = baseColumnWeight) // ID
-                TableCell(lineData[1], weight = baseColumnWeight) // Name
-                TableCell(lineData[2], weight = baseColumnWeight) // IPP
-                TableCell(lineData[3], weight = baseColumnWeight) // Study Date
-                TableCell(lineData[4], weight = baseColumnWeight) // IRM
-                TableCellState(lineData[5], weight = baseColumnWeight) // State
-                TableCellIcon(close, weight = iconColumnWeight, onIconClick = {}) // Delete line
-            }
-        }
-    }
 }

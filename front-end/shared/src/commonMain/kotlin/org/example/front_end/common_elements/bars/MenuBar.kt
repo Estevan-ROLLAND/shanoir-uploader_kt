@@ -46,6 +46,13 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import front_end.shared.generated.resources.Res
 import front_end.shared.generated.resources.logoShUp
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import org.example.front_end.common_elements.icons.cancel
 import org.example.front_end.common_elements.icons.check
 import org.example.front_end.common_elements.icons.close
@@ -368,11 +375,17 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
         state = state,
         alwaysOnTop = true
     ) {
-        var isDistantPACSConnected by remember { mutableStateOf(false) }
+        val dicomConfig by remember { mutableStateOf(viewModel.DICOMConfig) }
+
+        var isDistantPACSConnected by remember { mutableStateOf(true) } // TODO() Implement connection check logic
 
         var isErrorWindowOpened by remember { mutableStateOf(false) }
         var isVerificationDialogOpened by remember { mutableStateOf(false) }
         var isValidationDialogOpened by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            viewModel.getDICOMConfig()
+        }
 
         Column(
             modifier = Modifier
@@ -380,6 +393,17 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(30.dp)
         ) {
+            val distant = dicomConfig.jsonObject["distantDicomServer"]
+            var aet by remember { mutableStateOf(distant!!.jsonObject["aet"].toString()) }
+            var hostAddress by remember { mutableStateOf(distant!!.jsonObject["host"].toString()) }
+            var port by remember { mutableStateOf(distant!!.jsonObject["port"].toString()) }
+
+            val local = dicomConfig.jsonObject["localDicomServer"]
+            var localAET by remember { mutableStateOf(local!!.jsonObject["aet"].toString()) }
+            var localHostAddress by remember { mutableStateOf(local!!.jsonObject["host"].toString()) }
+            var localPort by remember { mutableStateOf(local!!.jsonObject["port"].toString()) }
+
+
             /**
              * Distant PACS
              */
@@ -401,17 +425,17 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var aet by remember { mutableStateOf(viewModel.DICOMConfigplaceholder.first.getValue("AET")) }
-
                     Text(
                         text = "AET :"
                     )
                     TextField(
+                        modifier = Modifier.width(280.dp),
                         value = aet,
                         onValueChange = {
                             aet = it
-                            viewModel.setDICOMConfig("distant", "AET", it)
-                        }
+
+                        },
+                        singleLine = true
                     )
                 }
                 Row(
@@ -421,17 +445,17 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var hostAddress by remember { mutableStateOf(viewModel.DICOMConfigplaceholder.first.getValue("HostAddress")) }
-
                     Text(
                         text = "Adresse de l'hôte :"
                     )
                     TextField(
+                        modifier = Modifier.width(280.dp),
                         value = hostAddress,
                         onValueChange = {
                             hostAddress = it
-                            viewModel.setDICOMConfig("distant", "HostAddress", hostAddress)
-                        }
+                        },
+                        singleLine = true
+
                     )
                 }
                 Row(
@@ -441,17 +465,16 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var port by remember { mutableStateOf(viewModel.DICOMConfigplaceholder.first.getValue("Port")) }
-
                     Text(
                         text = "Port :"
                     )
                     TextField(
+                        modifier = Modifier.width(280.dp),
                         value = port,
                         onValueChange = {
                             port = it
-                            viewModel.setDICOMConfig("distant", "Port", port)
-                        }
+                        },
+                        singleLine = true
                     )
                 }
             }
@@ -477,17 +500,16 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var localAET by remember { mutableStateOf(viewModel.DICOMConfigplaceholder.second.getValue("LocalAET")) }
-
                     Text(
                         text = "AET local :"
                     )
                     TextField(
+                        modifier = Modifier.width(280.dp),
                         value = localAET,
                         onValueChange = {
                             localAET = it
-                            viewModel.setDICOMConfig("local", "LocalAET", localAET)
-                        }
+                        },
+                        singleLine = true
                     )
                 }
                 Row(
@@ -497,17 +519,16 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var localAddress by remember { mutableStateOf(viewModel.DICOMConfigplaceholder.second.getValue("LocalAddress")) }
-
                     Text(
                         text = "Adresse locale :"
                     )
                     TextField(
-                        value = localAddress,
+                        modifier = Modifier.width(280.dp),
+                        value = localHostAddress,
                         onValueChange = {
-                            localAddress = it
-                            viewModel.setDICOMConfig("local", "LocalAddress", localAddress)
-                        }
+                            localHostAddress = it
+                        },
+                        singleLine = true
                     )
                 }
                 Row(
@@ -517,17 +538,16 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var localPort by remember { mutableStateOf(viewModel.DICOMConfigplaceholder.second.getValue("LocalPort")) }
-
                     Text(
                         text = "Port local :"
                     )
                     TextField(
+                        modifier = Modifier.width(280.dp),
                         value = localPort,
                         onValueChange = {
                             localPort = it
-                            viewModel.setDICOMConfig("local", "LocalPort", localPort)
-                        }
+                        },
+                        singleLine = true
                     )
                 }
             }
@@ -560,6 +580,7 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                             isErrorWindowOpened = true
                         } else {
                             isValidationDialogOpened = true
+
                         }
                     }
                 ) {
@@ -591,6 +612,27 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                             onDismiss()
                         }
                     )
+
+                    val newDICOMConfig = JsonObject(
+                        mapOf(
+                            "distantDicomServer" to JsonObject(mapOf(
+                                "host" to Json.encodeToJsonElement(hostAddress),
+                                "aet" to Json.encodeToJsonElement(aet),
+                                "port" to Json.encodeToJsonElement(port.toInt())
+                            )),
+                            "localDicomServer" to JsonObject(mapOf(
+                                "host" to Json.encodeToJsonElement(localHostAddress),
+                                "aet" to Json.encodeToJsonElement(localAET),
+                                "port" to Json.encodeToJsonElement(localPort.toInt())
+                            ))
+                        )
+                    )
+
+                    viewModel.DICOMConfig = newDICOMConfig
+
+                    LaunchedEffect(Unit){
+                        viewModel.setDICOMConfig()
+                    }
                 }
             }
 

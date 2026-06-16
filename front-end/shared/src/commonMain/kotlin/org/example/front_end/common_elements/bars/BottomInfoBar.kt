@@ -49,6 +49,8 @@ import org.example.front_end.common_elements.icons.close
 import org.example.front_end.common_elements.icons.upload
 import java.io.File
 import java.io.InputStream
+import java.util.logging.Handler
+import kotlin.concurrent.fixedRateTimer
 
 @Composable
 fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChange: () -> Unit) {
@@ -115,13 +117,11 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
 
                                     Windows.EXPORT -> {
 
-                                        var importedLines by remember { mutableStateOf(viewModel.testData.size) }
-
                                         LazyColumn(
                                             modifier = Modifier.padding(horizontal = 10.dp)
                                         ) {
                                             item {
-                                                Text("Examens importés : $importedLines")
+                                                Text("Examens importés : ${viewModel.testData.size}")
                                             }
                                             item{
                                                 Text("Examens en erreur : ")
@@ -151,7 +151,8 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                             .fillMaxHeight()
                             .padding(vertical = 15.dp)
                             .border(1.dp, Color.LightGray)
-                    ) {
+                    )
+                    {
                         Column(
                             modifier = Modifier.padding(10.dp)
                         ) {
@@ -190,6 +191,10 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                         }
                     }
 
+
+                    /**
+                     * Buttons
+                     */
                     when(currentScreen) {
                         Windows.IMPORT -> {
                             Button(
@@ -218,7 +223,6 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                                 verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 var isExportFormOpened by remember { mutableStateOf(false) }
-                                var enabled by remember { mutableStateOf((viewModel.selectedLines.size == 1)) }
 
                                 /**
                                  * Import Selected Lines Button
@@ -230,11 +234,11 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                                         isExportFormOpened = !isExportFormOpened
                                     },
                                     colors = ButtonColors(
-                                        Color(0x29,0xCF,0x00), Color.White,
+                                        containerColor = Color(0x29,0xCF,0x00), contentColor = Color.White,
                                         disabledContainerColor = Color.Gray,
                                         disabledContentColor = Color.LightGray,
                                     ),
-                                    enabled = enabled // false when no lines are selected
+                                    enabled = viewModel.enableImportBtn // false when no lines are selected
                                 ){
                                     Row(
                                         modifier = Modifier
@@ -253,15 +257,13 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                                 Button(
                                     modifier = Modifier
                                         .padding(40.dp,0.dp),
-                                    onClick = {
-
-                                    },
+                                    onClick = { viewModel.deleteSelectedLines() },
                                     colors = ButtonColors(
                                         Color(0xCF, 0x00, 0x00), Color.White,
                                         disabledContainerColor = Color.Gray,
                                         disabledContentColor = Color.LightGray,
                                     ),
-                                    enabled = true // false when no lines are selected
+                                    enabled = viewModel.selectedLines.isNotEmpty()
                                 ){
                                     Row(
                                         modifier = Modifier
