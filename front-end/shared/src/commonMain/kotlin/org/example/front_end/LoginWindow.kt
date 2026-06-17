@@ -29,7 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import front_end.shared.generated.resources.Res
+import front_end.shared.generated.resources.id
+import front_end.shared.generated.resources.login
+import front_end.shared.generated.resources.password
 import org.example.front_end.common_elements.bars.MenuBar
+import org.jetbrains.compose.resources.stringResource
 
 
 @Composable
@@ -94,7 +99,7 @@ fun LoginWindow(modifier: Modifier = Modifier, onLoginSuccess: () -> Unit = {}) 
                     onLoginSuccess()
                 },
             ) {
-                Text("Login")
+                Text("Connexion")
             }
         }
     }

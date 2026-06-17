@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.example.front_end.ExportFormWindow
+import org.example.front_end.dialog_windows.ExportFormWindow
 import org.example.front_end.viewmodel.ViewModelShUp
 import org.example.front_end.Windows
 import org.example.front_end.common_elements.icons.arrow_forward
@@ -49,8 +49,6 @@ import org.example.front_end.common_elements.icons.close
 import org.example.front_end.common_elements.icons.upload
 import java.io.File
 import java.io.InputStream
-import java.util.logging.Handler
-import kotlin.concurrent.fixedRateTimer
 
 @Composable
 fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChange: () -> Unit) {
