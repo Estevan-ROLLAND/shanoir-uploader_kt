@@ -5,11 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,8 +21,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -135,6 +141,8 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
 @Composable
 fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, onUnselected: (List<String>) -> Unit) {
     val filters = remember { mutableStateListOf("", "", "", "", "", "") }
+    var showFilters by remember { mutableStateOf(false) }
+
     val columnWeights = listOf(.12f, .23f, .16f, .16f, .14f, .13f)
     val iconColumnWeight = .06f
 
@@ -149,6 +157,25 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Filtres : ", modifier = Modifier.padding(end = 8.dp))
+                Button(
+                    onClick = { showFilters = !showFilters },
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text(if (showFilters) "Masquer les filtres" else "Afficher les filtres")
+                }
+            }
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -169,6 +196,29 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
                     TableHeaderCell("État", columnWeights[5])
                     TableCellIcon(close, "Supprimer", iconColumnWeight, {})
                 }
+            }
+
+            if (showFilters) {
+                item {
+                    // Filter Row
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xE0, 0xE0, 0xE0))
+                            .border(1.dp, Color.Black)
+                    ) {
+                        TableCellEmpty("     ",  iconColumnWeight)
+                        TableFilterCell(filters[0], columnWeights[0]) { filters[0] = it }
+                        TableFilterCell(filters[1], columnWeights[1]) { filters[1] = it }
+                        TableFilterCell(filters[2], columnWeights[2]) { filters[2] = it }
+                        TableFilterCell(filters[3], columnWeights[3]) { filters[3] = it }
+                        TableFilterCell(filters[4], columnWeights[4]) { filters[4] = it }
+                        TableFilterCell(filters[5], columnWeights[5]) { filters[5] = it }
+                        TableCellEmpty("     ", iconColumnWeight)
+                    }
+                }
+            } else {
+                filters.fill("") // Reset filters when hiding
             }
 
             items(visibleData, key = { it.firstOrNull().orEmpty() }) { lineData ->
@@ -243,7 +293,7 @@ fun RowScope.TableFilterCell(
         modifier = Modifier
             .weight(weight)
             .border(1.dp, Color.Black)
-            .padding(4.dp)
+            .height(56.dp)
     )
 }
 
@@ -300,6 +350,22 @@ fun RowScope.TableCellIcon(
                )
                .padding(vertical = 8.dp)
        )
+}
+
+@Composable
+fun RowScope.TableCellEmpty(
+    text: String,
+    weight: Float,
+)
+{
+    Text(
+        text = text,
+        modifier = Modifier
+            .border(1.dp, Color.Black)
+            .weight(weight)
+            .height(56.dp)
+            .padding(8.dp)
+    )
 }
 
 @Composable

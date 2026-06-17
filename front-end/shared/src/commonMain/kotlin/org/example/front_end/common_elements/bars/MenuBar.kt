@@ -3,17 +3,14 @@ package org.example.front_end.common_elements.bars
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -32,11 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.platform.Font
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,21 +41,17 @@ import androidx.compose.ui.window.rememberWindowState
 import front_end.shared.generated.resources.Res
 import front_end.shared.generated.resources.logoShUp
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.example.front_end.common_elements.icons.cancel
 import org.example.front_end.common_elements.icons.check
-import org.example.front_end.common_elements.icons.close
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.icons.menu
 import org.example.front_end.common_elements.icons.settings
+import org.example.front_end.common_elements.utils.DICOMConfig
 import org.example.front_end.viewmodel.ViewModelShUp
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun MenuBar(viewModel: ViewModelShUp) {
@@ -375,7 +365,7 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
         state = state,
         alwaysOnTop = true
     ) {
-        val dicomConfig by remember { mutableStateOf(viewModel.DICOMConfig) }
+        val dicomConfig = viewModel.DICOMConfig
 
         var isDistantPACSConnected by remember { mutableStateOf(true) } // TODO() Implement connection check logic
 
@@ -393,16 +383,15 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(30.dp)
         ) {
-            val distant = dicomConfig.jsonObject["distantDicomServer"]
-            var aet by remember { mutableStateOf(distant!!.jsonObject["aet"].toString()) }
-            var hostAddress by remember { mutableStateOf(distant!!.jsonObject["host"].toString()) }
-            var port by remember { mutableStateOf(distant!!.jsonObject["port"].toString()) }
+            val distant = dicomConfig.jsonObject["distantDicomServer"]?.jsonObject
+            var aet by remember(dicomConfig) { mutableStateOf(distant?.get("aet")?.jsonPrimitive?.contentOrNull.orEmpty()) }
+            var hostAddress by remember(dicomConfig) { mutableStateOf(distant?.get("host")?.jsonPrimitive?.contentOrNull.orEmpty()) }
+            var port by remember(dicomConfig) { mutableStateOf(distant?.get("port")?.jsonPrimitive?.contentOrNull.orEmpty()) }
 
-            val local = dicomConfig.jsonObject["localDicomServer"]
-            var localAET by remember { mutableStateOf(local!!.jsonObject["aet"].toString()) }
-            var localHostAddress by remember { mutableStateOf(local!!.jsonObject["host"].toString()) }
-            var localPort by remember { mutableStateOf(local!!.jsonObject["port"].toString()) }
-
+            val local = dicomConfig.jsonObject["localDicomServer"]?.jsonObject
+            var localAET by remember(dicomConfig) { mutableStateOf(local?.get("aet")?.jsonPrimitive?.contentOrNull.orEmpty()) }
+            var localHostAddress by remember(dicomConfig) { mutableStateOf(local?.get("host")?.jsonPrimitive?.contentOrNull.orEmpty()) }
+            var localPort by remember(dicomConfig) { mutableStateOf(local?.get("port")?.jsonPrimitive?.contentOrNull.orEmpty()) }
 
             /**
              * Distant PACS
@@ -613,24 +602,16 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                         }
                     )
 
-                    val newDICOMConfig = JsonObject(
-                        mapOf(
-                            "distantDicomServer" to JsonObject(mapOf(
-                                "host" to Json.encodeToJsonElement(hostAddress),
-                                "aet" to Json.encodeToJsonElement(aet),
-                                "port" to Json.encodeToJsonElement(port.toInt())
-                            )),
-                            "localDicomServer" to JsonObject(mapOf(
-                                "host" to Json.encodeToJsonElement(localHostAddress),
-                                "aet" to Json.encodeToJsonElement(localAET),
-                                "port" to Json.encodeToJsonElement(localPort.toInt())
-                            ))
-                        )
-                    )
-
-                    viewModel.DICOMConfig = newDICOMConfig
-
                     LaunchedEffect(Unit){
+                        val config = DICOMConfig(
+                            aet = aet,
+                            hostAddress = hostAddress,
+                            port = (port.toIntOrNull() ?: 0).toString(),
+                            localAET = localAET,
+                            localHostAddress = localHostAddress,
+                            localPort = (localPort.toIntOrNull() ?: 0).toString()
+                        )
+                        viewModel.DICOMConfig = config.getDICOMConfigAsJsonElement()
                         viewModel.setDICOMConfig()
                     }
                 }
