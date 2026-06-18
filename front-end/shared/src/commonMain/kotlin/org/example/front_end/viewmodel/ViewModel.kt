@@ -43,6 +43,9 @@ class ViewModelShUp : ViewModel() {
 
     fun getNbSelectedLines() : Int = selectedLines.size
 
+    init {
+        errorLines = testData.filter { it[5] == "ERROR" }
+    }
 
     // Imported Lines Table
 
@@ -78,7 +81,6 @@ class ViewModelShUp : ViewModel() {
 
     fun checkEnableImportBtn(){
         enableImportBtn = selectedLines.size == 1
-        println("enabled : $enableImportBtn")
     }
 
 

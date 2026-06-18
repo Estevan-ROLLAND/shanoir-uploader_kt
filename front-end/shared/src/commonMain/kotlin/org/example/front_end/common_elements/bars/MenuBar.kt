@@ -122,20 +122,9 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
 
     var isLangMenuOpened by remember { mutableStateOf(false) }
     var lang by remember { mutableStateOf("fr") }
-    var lastLang = "fr"
 
     var isAboutMenuOpened by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(viewModel.logger){
-        while (true) {
-            if (lang != lastLang) {
-                lastLang = lang
-                viewModel.logger.writeLog("Language changed to $lang")
-            }
-            delay(500.milliseconds)
-        }
-    }
 
     DropdownMenu(
         expanded = isOpened,
@@ -202,7 +191,10 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                         )
 
                         DropdownMenuItem(
-                            onClick = {verifyServer = !verifyServer},
+                            onClick = {
+                                verifyServer = !verifyServer
+                                viewModel.logger.writeLog("Verification du serveur DICOM : $verifyServer")
+                            },
                             leadingIcon = {
                                 if (verifyServer){
                                     Icon(check, "")
@@ -254,6 +246,7 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                         DropdownMenuItem(
                             onClick = {
                                 lang = "fr"
+                                viewModel.logger.writeLog("Langue changée en français")
                             },
                             leadingIcon = {
                                 if (lang == "fr"){
@@ -278,6 +271,7 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                         DropdownMenuItem(
                             onClick = {
                                 lang = "en"
+                                viewModel.logger.writeLog("Language changed to english")
                             },
                             leadingIcon = {
                                 if (lang == "en"){

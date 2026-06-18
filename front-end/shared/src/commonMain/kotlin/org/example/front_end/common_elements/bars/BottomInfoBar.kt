@@ -99,20 +99,14 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                     ) {
                         when(activeBottomBarCategory) {
                             "Infos" -> {
-                                var title = ""
-                                if (currentScreen == Windows.IMPORT) {
-                                    title = "Copies ou téléchargement en cours :"
-                                } else if (currentScreen == Windows.EXPORT){
-                                    title = "Informations générales"
-                                }
-                                Text(
-                                    text = title,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(10.dp),
-                                )
-
                                 when(currentScreen){
                                     Windows.IMPORT -> {
+                                        Text(
+                                            text = "Copies ou téléchargement en cours :",
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(10.dp),
+                                        )
+
                                         // TODO() les bar de téléchargements
                                         LinearDeterminateIndicator()
                                     }
@@ -287,14 +281,68 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
 
 @Composable
 fun ExportInfoPanel(viewModel: ViewModelShUp){
-    LazyColumn(
-        modifier = Modifier.padding(horizontal = 10.dp)
-    ) {
-        item {
-            Text("Examens importés : ${viewModel.testData.size}")
-        }
-        item{
-            Text("Examens en erreur : ")
+    Column {
+        when(viewModel.selectedLines.size){
+            0-> { // No lines selected
+                Text(
+                    text = "Informations générales",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(10.dp),
+                )
+
+                LazyColumn(
+                    modifier = Modifier.padding(horizontal = 10.dp)
+                ) {
+
+                    item {
+                        Text("Examens importés : ${viewModel.testData.size}")
+                    }
+                    item{
+                        Text("Examens en erreur : ${viewModel.testData.count { it[5] == "ERROR" }}")
+                    }
+                }
+            }
+
+            1 -> { // One line selected
+                Text(
+                    text = "Informations sur la ligne sélectionnée",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(10.dp),
+                )
+
+                val line = viewModel.selectedLines.first()
+                when(line[5]) {
+                    "FINISHED" ->{
+                        // display the imported DICOM series information
+                    }
+
+                    "ERROR" -> {
+                        Text("Examen en erreur", color = Color.Red, modifier = Modifier.padding(horizontal = 10.dp))
+                        Text("Message d'erreur : [insert error message]", modifier = Modifier.padding(horizontal = 10.dp))
+                    }
+
+                    "READY" -> {
+                        Text("Examen importé avec succès", color = Color.Green, modifier = Modifier.padding(horizontal = 10.dp))
+                        Text("Données prêtes à être exportées !", modifier = Modifier.padding(horizontal = 10.dp))
+                    }
+
+                    "CHECK_OK" -> {
+                        // display the imported DICOM series information
+                    }
+
+                    "CHECK_KO" -> {
+                        // display the missing DICOM series on the server side
+                    }
+                }
+            }
+
+            else -> {
+                Text(
+                    text = "Informations sur les lignes sélectionnées",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(10.dp),
+                )
+            }
         }
     }
 }

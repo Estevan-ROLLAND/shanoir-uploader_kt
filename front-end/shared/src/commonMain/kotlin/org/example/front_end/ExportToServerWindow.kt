@@ -181,13 +181,30 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
         ) {
             item {
                 // Header Row
+                val isAllSelected = viewModel.selectedLines.size == visibleData.size && visibleData.isNotEmpty()
+                val iconCheckbox = if (isAllSelected) check_box else check_box_outline_blank
+
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .background(Color(0x89, 0x76, 0xBC))
                         .border(1.dp, Color.Black)
                 ) {
-                    TableCellIcon(check_box_outline_blank, "Sélectionner", iconColumnWeight, {})
+                    TableCellIcon(iconCheckbox, "Sélectionner", iconColumnWeight, {
+                        if (isAllSelected) {
+                            visibleData.forEach { line ->
+                                viewModel.removeLineAsSelected(line)
+                                onUnselected(line)
+                            }
+                        } else {
+                            visibleData.forEach { line ->
+                                if (!viewModel.selectedLines.contains(line)) {
+                                    viewModel.addLineToSelected(line)
+                                    onSelected(line)
+                                }
+                            }
+                        }
+                    })
                     TableHeaderCell("ID", columnWeights[0])
                     TableHeaderCell("Nom du patient", columnWeights[1])
                     TableHeaderCell("IPP", columnWeights[2])
