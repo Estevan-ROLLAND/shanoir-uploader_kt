@@ -6,9 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import front_end.shared.generated.resources.Res
 import org.example.front_end.common_elements.bars.BottomInfoBar
 import org.example.front_end.common_elements.bars.MenuBar
+import org.example.front_end.common_elements.utils.LoggerShUP
 import org.example.front_end.viewmodel.ViewModelShUp
+import java.io.File
+import kotlin.math.log
 
 @Composable
 fun WindowsHandler() {
@@ -44,6 +48,7 @@ fun WindowsHandler() {
             BottomInfoBar(
                 currentScreen = currentScreen,
                 viewModel = viewModel,
+                logger = viewModel.logger,
                 onScreenChange = {
                     currentScreen = Windows.EXPORT
                 }

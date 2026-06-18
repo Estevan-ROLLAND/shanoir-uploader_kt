@@ -47,11 +47,14 @@ import org.example.front_end.Windows
 import org.example.front_end.common_elements.icons.arrow_forward
 import org.example.front_end.common_elements.icons.close
 import org.example.front_end.common_elements.icons.upload
+import org.example.front_end.common_elements.utils.LoggerShUP
 import java.io.File
 import java.io.InputStream
+import kotlin.collections.emptyList
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChange: () -> Unit) {
+fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: LoggerShUP, onScreenChange: () -> Unit) {
     when(currentScreen) {
         Windows.LOGIN -> {}
 
@@ -64,7 +67,8 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                     .fillMaxHeight()
                     .background(Color.White),
                 verticalArrangement = Arrangement.Center
-            ){
+            )
+            {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,17 +118,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                                     }
 
                                     Windows.EXPORT -> {
-
-                                        LazyColumn(
-                                            modifier = Modifier.padding(horizontal = 10.dp)
-                                        ) {
-                                            item {
-                                                Text("Examens importés : ${viewModel.testData.size}")
-                                            }
-                                            item{
-                                                Text("Examens en erreur : ")
-                                            }
-                                        }
+                                        ExportInfoPanel(viewModel)
                                     }
 
                                     else -> {}
@@ -135,7 +129,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
                                 /**
                                  * Show the logs
                                  */
-                                Logs()
+                                Logs(logger)
                             }
                         }
                     }
@@ -292,28 +286,76 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, onScreenChan
 
 
 @Composable
-fun Logs() {
-    val lazyColumnState = rememberLazyListState()
-    val inputStream: InputStream = File("/home/estevan/Documents/shanoir-uploader_kt/front-end/shared/src/commonMain/composeResources/files/logs.txt").inputStream()
-    val lineList = mutableListOf<String>()
-
-    inputStream.bufferedReader().forEachLine { lineList.add(it) }
-
-    LaunchedEffect(key1 = Unit) {
-        lazyColumnState.animateScrollToItem(lineList.lastIndex)
+fun ExportInfoPanel(viewModel: ViewModelShUp){
+    LazyColumn(
+        modifier = Modifier.padding(horizontal = 10.dp)
+    ) {
+        item {
+            Text("Examens importés : ${viewModel.testData.size}")
+        }
+        item{
+            Text("Examens en erreur : ")
+        }
     }
+}
+
+@Composable
+fun Logs(logger: LoggerShUP) {
+    val lazyColumnState = rememberLazyListState()
+
+    // Keep a mutable copy of the logs and update it when the underlying file changes.
+    var logs by remember { mutableStateOf(logger.getLogContent()) }
+
+    // Watch the log file periodically and update `logs` when its content changes.
+    LaunchedEffect(logger) {
+        // initial scroll to the bottom if there is already content
+        val initialLines = logs.lines().filter { it.isNotEmpty() }
+        if (initialLines.isNotEmpty()) {
+            lazyColumnState.animateScrollToItem(initialLines.lastIndex)
+        }
+
+        while (true) {
+            val newContent = try {
+                logger.getLogContent()
+            } catch (e: Exception) {
+                // if reading fails, just skip this iteration
+                null
+            }
+
+            if (newContent != null && newContent != logs) {
+                logs = newContent
+
+                // after updating the state, scroll to the last line
+                val lines = newContent.lines().filter { it.isNotEmpty() }
+                if (lines.isNotEmpty()) {
+                    // animate to the last line
+                    lazyColumnState.animateScrollToItem(lines.lastIndex)
+                }
+            }
+
+            // Poll every 500ms for changes. Adjust interval if needed.
+            delay(500.milliseconds)
+        }
+    }
+
+    // Display each log line as an item so we can scroll to the last line index
+    val logLines = logs.lines()
 
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth(),
         state = lazyColumnState
     ){
-
-        items(lineList){ lineText ->
-            Text(lineText)
+        items(logLines) { line ->
+            Text(text = line)
         }
     }
 }
+
+
+/**
+ * Download Bars
+ */
 
 @Composable
 fun DownloadBar(percentage: Int = 1) {
@@ -360,7 +402,6 @@ fun DownloadBar(percentage: Int = 1) {
     }
 
 }
-
 
 @Composable
 fun LinearDeterminateIndicator() {

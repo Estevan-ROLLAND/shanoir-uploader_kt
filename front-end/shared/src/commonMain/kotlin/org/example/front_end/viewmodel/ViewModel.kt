@@ -16,9 +16,16 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.example.front_end.common_elements.utils.DICOMConfig
+import org.example.front_end.common_elements.utils.LoggerShUP
+import java.io.File
 
 
 class ViewModelShUp : ViewModel() {
+    val logger = LoggerShUP(
+        File("/home/estevan/Documents/shanoir-uploader_kt/front-end/shared/src/commonMain/composeResources/files/logs.txt") // use the file logs.txt in the resources folder files
+    )
+
+
     var testData by mutableStateOf(listOf(
         listOf("P1","John Doe","IPP_Random","10/08/2019","IRM1","FINISHED"),
         listOf("P2","John Doe","IPP_Random","10/08/2019","IRM1","ERROR"),
@@ -36,14 +43,17 @@ class ViewModelShUp : ViewModel() {
 
     fun getNbSelectedLines() : Int = selectedLines.size
 
-    fun addLine(data: List<String>){
+
+    // Imported Lines Table
+
+    fun addLineToSelected(data: List<String>){
         if (!selectedLines.contains(data)) {
             selectedLines = selectedLines + listOf(data)
         }
         checkEnableImportBtn()
     }
 
-    fun removeLine(data: List<String>){
+    fun removeLineAsSelected(data: List<String>){
         if (selectedLines.contains(data)){
             selectedLines = selectedLines.filterNot { it == data }
         }
@@ -56,12 +66,14 @@ class ViewModelShUp : ViewModel() {
 
         testData = testData.filterNot { linesToDelete.contains(it) }
         selectedLines = emptyList()
+        logger.writeLog("Deleted ${linesToDelete.size} selected lines.")
         checkEnableImportBtn()
     }
 
     fun deleteLine(data: List<String>) {
         testData = testData.filterNot { it == data }
-        removeLine(data)
+        logger.writeLog("Deleted line: $data")
+        removeLineAsSelected(data)
     }
 
     fun checkEnableImportBtn(){
@@ -69,6 +81,8 @@ class ViewModelShUp : ViewModel() {
         println("enabled : $enableImportBtn")
     }
 
+
+    // DICOM configuration management
 
     /**
      * Fetches the DICOM configuration from the server and updates the DICOMConfig property.
@@ -80,6 +94,9 @@ class ViewModelShUp : ViewModel() {
 
         val json = Json { ignoreUnknownKeys = true }
         DICOMConfig = json.decodeFromString<JsonObject>(response.bodyAsText())
+
+        logger.writeLog("Fetched DICOM configuration: $DICOMConfig")
+
         println("Fetched DICOM configuration: $DICOMConfig")
     }
 
@@ -92,6 +109,15 @@ class ViewModelShUp : ViewModel() {
             contentType(ContentType.Application.Json)
             setBody(DICOMConfig.toString())
         }
+
+        logger.writeLog("Updated DICOM configuration: $DICOMConfig")
         println("Response: ${response.status.value}")
+    }
+
+    /**
+     * Echo the distant PACS to check connectivity and configuration.
+     */
+    suspend fun echoDistantPACS(){
+        TODO("function echo to distant PACS")
     }
 }

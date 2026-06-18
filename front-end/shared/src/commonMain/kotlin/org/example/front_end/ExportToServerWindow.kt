@@ -119,11 +119,11 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
                     TableScreen(
                         viewModel = viewModel,
                         onSelected = { data: List<String> ->
-                            viewModel.addLine(data)
+                            viewModel.addLineToSelected(data)
                             println("Added - Nb Lignes selectionnées : ${viewModel.selectedLines.size} ; all selected lines : ${viewModel.selectedLines}")
                         },
                         onUnselected = { data: List<String> ->
-                            viewModel.removeLine(data)
+                            viewModel.removeLineAsSelected(data)
                             println("Removed - Nb Lignes selectionnées : ${viewModel.selectedLines.size} ; all selected lines : ${viewModel.selectedLines}")
                         }
                     )

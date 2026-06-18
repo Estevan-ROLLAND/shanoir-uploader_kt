@@ -56,6 +56,7 @@ fun ExportFormWindow(onClose: () -> Unit) {
     )
 
     Window(
+        title = "Exporter les données",
         state = state,
         onCloseRequest = onClose,
         alwaysOnTop = true

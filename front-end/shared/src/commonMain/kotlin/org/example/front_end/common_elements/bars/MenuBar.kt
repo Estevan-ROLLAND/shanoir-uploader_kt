@@ -14,6 +14,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import front_end.shared.generated.resources.Res
 import front_end.shared.generated.resources.logoShUp
+import kotlinx.coroutines.delay
 import org.example.front_end.dialog_windows.ConfigurationDialogWindow
 import org.example.front_end.common_elements.icons.check
 import org.example.front_end.common_elements.icons.info
@@ -36,6 +38,7 @@ import org.example.front_end.common_elements.icons.settings
 import org.example.front_end.dialog_windows.AboutShUpDialogWindow
 import org.example.front_end.viewmodel.ViewModelShUp
 import org.jetbrains.compose.resources.painterResource
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun MenuBar(viewModel: ViewModelShUp) {
@@ -119,8 +122,20 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
 
     var isLangMenuOpened by remember { mutableStateOf(false) }
     var lang by remember { mutableStateOf("fr") }
+    var lastLang = "fr"
 
     var isAboutMenuOpened by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(viewModel.logger){
+        while (true) {
+            if (lang != lastLang) {
+                lastLang = lang
+                viewModel.logger.writeLog("Language changed to $lang")
+            }
+            delay(500.milliseconds)
+        }
+    }
 
     DropdownMenu(
         expanded = isOpened,

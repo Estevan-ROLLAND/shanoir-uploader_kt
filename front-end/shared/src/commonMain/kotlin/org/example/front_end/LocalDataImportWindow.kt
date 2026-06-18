@@ -233,7 +233,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         TextField(
                                             modifier=Modifier.width(350.dp),
                                             value = namePatient,
-                                            onValueChange = {namePatient = it}
+                                            onValueChange = {namePatient = it},
+                                            placeholder = { Text("NOM, Prénom") }
                                         )
                                     }
                                     Row(
@@ -247,7 +248,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         TextField(
                                             modifier=Modifier.width(350.dp),
                                             value = idPatient,
-                                            onValueChange = {idPatient = it}
+                                            onValueChange = {idPatient = it},
+                                            placeholder = { Text("ID") }
                                         )
                                     }
                                     Row(
@@ -315,7 +317,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         TextField(
                                             modifier=Modifier.width(350.dp),
                                             value = descStudy,
-                                            onValueChange = {descStudy = it}
+                                            onValueChange = {descStudy = it},
+                                            placeholder = { Text("Description") }
                                         )
                                     }
                                     Row(
