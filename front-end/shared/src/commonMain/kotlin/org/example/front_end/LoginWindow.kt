@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -29,26 +30,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.test.visibility
+import com.example.test.visibility_off
+import org.example.front_end.common_elements.utils.DropDownTextField
+import org.example.front_end.common_elements.utils.LoginHandler
+import org.example.front_end.viewmodel.ViewModelShUp
 
 
 @Composable
-@Preview
-fun LoginWindow(modifier: Modifier = Modifier, onLoginSuccess: () -> Unit = {}) {
-    MaterialTheme {
+fun LoginWindow(modifier: Modifier = Modifier, viewModel: ViewModelShUp, onLoginSuccess: () -> Unit = {}) {
+    var accountType by remember { mutableStateOf(viewModel.loginHandler.accountTypes[0]) }
+    var id by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Column(
             modifier = modifier
-                .fillMaxWidth()
+                .fillMaxWidth(.5f)
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        )
+        {
             Row(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(0.dp, 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            )
+            {
+                Text(
+                    text = "Choissisez le profil : "
+                )
+
+                DropDownTextField(
+                    options = viewModel.loginHandler.accountTypes,
+                    selectedOption = accountType,
+                    onOptionSelected = { accountType = it },
+                    width = 766
+                )
+            }
+
+            Row(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(58.dp)
             ) {
-                var id by remember { mutableStateOf("") }
 
                 Text(
                     text = "Identifiant :"
@@ -61,21 +95,36 @@ fun LoginWindow(modifier: Modifier = Modifier, onLoginSuccess: () -> Unit = {}) 
                     onValueChange = { id = it },
                 )
             }
+
             Row(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(0.dp, 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(52.dp)
             ) {
                 Text(
                     text = "Mot de passe :"
                 )
 
                 val state = rememberTextFieldState()
-                var showPassword by remember { mutableStateOf(false) }
                 SecureTextField(
                     state = state,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = if (showPassword) {
+                                visibility_off
+                            } else {
+                                visibility
+                            },
+                            contentDescription = "",
+                            modifier = Modifier
+                                .clickable(onClick = {
+                                    showPassword = !showPassword
+                                    }
+                                )
+                        )
+                    },
                     textObfuscationMode =
                         if (showPassword) {
                             TextObfuscationMode.Visible
@@ -84,12 +133,14 @@ fun LoginWindow(modifier: Modifier = Modifier, onLoginSuccess: () -> Unit = {}) 
                         },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(6.dp),
                 )
             }
+
             Button(
                 modifier = modifier,
                 onClick = {
+                    viewModel.loginHandler.setLoginInfo(accountType = accountType, id)
+                    viewModel.logger.writeLog("Connected as ${viewModel.loginHandler.getAccountType()} with id $id")
                     onLoginSuccess()
                 },
             ) {
@@ -97,4 +148,6 @@ fun LoginWindow(modifier: Modifier = Modifier, onLoginSuccess: () -> Unit = {}) 
             }
         }
     }
+
+
 }

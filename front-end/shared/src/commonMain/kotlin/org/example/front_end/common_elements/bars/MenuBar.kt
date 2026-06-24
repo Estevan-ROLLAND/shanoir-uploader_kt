@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.test.folder
 import front_end.shared.generated.resources.Res
 import front_end.shared.generated.resources.logoShUp
 import kotlinx.coroutines.delay
@@ -35,6 +36,7 @@ import org.example.front_end.common_elements.icons.check
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.icons.menu
 import org.example.front_end.common_elements.icons.settings
+import org.example.front_end.common_elements.utils.LoginHandler
 import org.example.front_end.dialog_windows.AboutShUpDialogWindow
 import org.example.front_end.viewmodel.ViewModelShUp
 import org.jetbrains.compose.resources.painterResource
@@ -85,7 +87,7 @@ fun MenuBar(viewModel: ViewModelShUp) {
         )
         {
             Text(
-                text = "Profil : [Type du profil]"
+                text = "Profil : ${viewModel.loginHandler.getAccountType()}",
             )
 
             IconButton(
@@ -116,6 +118,8 @@ fun MenuBar(viewModel: ViewModelShUp) {
 
 @Composable
 fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel: ViewModelShUp) {
+    var isFileMenuOpened by remember { mutableStateOf(false) }
+
     var isConfigurationMenuOpened by remember { mutableStateOf(false) }
     var isServerConfigurationMenuOpened by remember { mutableStateOf(false) }
     var verifyServer by remember { mutableStateOf(false) }
@@ -130,9 +134,18 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
         expanded = isOpened,
         onDismissRequest = onDismiss
     ){
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+            text = "Utilisateur : ${viewModel.loginHandler.getUsername()}",
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0x67,0x50,0xA4)
+        )
+
         // File
         DropdownMenuItem(
-            onClick = {},
+            onClick = {
+                isFileMenuOpened = !isFileMenuOpened
+            },
             text = {
                 Text(
                     modifier = Modifier.fillMaxWidth(),
@@ -140,6 +153,30 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                     fontSize = 15.sp,
                     color = Color(0x67,0x50,0xA4),
                 )
+
+                DropdownMenu(
+                    expanded = isFileMenuOpened,
+                    onDismissRequest = {isFileMenuOpened = false},
+                    offset = DpOffset(x = -212.dp, y=-40.dp)
+                ) {
+                    DropdownMenuItem(
+                        onClick = {
+                            isFileMenuOpened = false
+                        },
+                        text = {
+                            Text(
+                                text = "Importer en masse",
+                                fontSize = 15.sp,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = folder,
+                                contentDescription = "",
+                            )
+                        }
+                    )
+                }
             }
         )
 
@@ -153,12 +190,6 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-//                    Icon(
-//                        imageVector = settings,
-//                        contentDescription = "",
-//                        tint = Color(0x67,0x50,0xA4),
-//                    )
-
                     Text(
                         modifier = Modifier.fillMaxWidth(),
                         text = "Configuration",
@@ -169,7 +200,7 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                     DropdownMenu(
                         expanded = isConfigurationMenuOpened,
                         onDismissRequest = {isConfigurationMenuOpened = false},
-                        offset = DpOffset(x = -292.dp, y=-30.dp)
+                        offset = DpOffset(x = -292.dp, y=-40.dp)
                     )
                     {
                         DropdownMenuItem(
@@ -240,7 +271,7 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                     DropdownMenu(
                         expanded = isLangMenuOpened,
                         onDismissRequest = {isLangMenuOpened = false},
-                        offset = DpOffset(x = -133.dp, y=-30.dp)
+                        offset = DpOffset(x = -133.dp, y=-40.dp)
                     )
                     {
                         DropdownMenuItem(

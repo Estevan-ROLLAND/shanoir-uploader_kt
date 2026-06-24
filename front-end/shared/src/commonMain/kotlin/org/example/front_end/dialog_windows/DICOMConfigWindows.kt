@@ -277,7 +277,12 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
                 }
 
                 if (isVerificationDialogOpened) {
+                    LaunchedEffect(key1 = Unit) {
+                        isDistantPACSConnected = viewModel.echoDistantPACS()
+                    }
+
                     PACSVerification(
+                        isDistantPACSConnected = isDistantPACSConnected,
                         onClose = {
                             isVerificationDialogOpened = false
                         }
@@ -430,9 +435,9 @@ fun PACSConnectionFailed(onClose: () -> Unit){
 }
 
 @Composable
-fun PACSVerification(onClose: () -> Unit){
+fun PACSVerification(isDistantPACSConnected: Boolean, onClose: () -> Unit){
     Dialog(
-        title = "Connexion échouée !",
+        title = if (isDistantPACSConnected) "Connexion réussie !" else "Connexion échouée !",
         state = DialogState(
             width = 500.dp,
             height = 155.dp
@@ -456,8 +461,8 @@ fun PACSVerification(onClose: () -> Unit){
                 Icon(
                     modifier = Modifier
                         .size(48.dp),
-                    imageVector = cancel,
-                    tint = Color(0xCF, 0x00, 0x00),
+                    imageVector = if (isDistantPACSConnected) info else cancel,
+                    tint = if(isDistantPACSConnected) Color(0x29,0xCF,0x00) else Color(0xCF, 0x00, 0x00),
                     contentDescription = ""
                 )
                 Column(
@@ -466,7 +471,7 @@ fun PACSVerification(onClose: () -> Unit){
                         .padding(horizontal = 20.dp, vertical = 15.dp)
                 ) {
                     Text(
-                        text = "Connexion au PACS distant échouée",
+                        text = if (isDistantPACSConnected) "Connexion au PACS distant réussie" else "Connexion au PACS distant échouée",
                     )
                 }
             }

@@ -16,8 +16,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonDefaults.buttonColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -90,13 +92,18 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    /**
+                     * When the active window is Window.IMPORT, show the download progress bar if a download is in progress
+                     * When the active window is Window.EXpORT, show the info about the imported exams
+                     */
                     Column(
                         modifier = Modifier
                             .padding(15.dp)
                             .width(1200.dp)
                             .fillMaxHeight()
                             .border(1.dp, Color.LightGray)
-                    ) {
+                    )
+                    {
                         when(activeBottomBarCategory) {
                             "Infos" -> {
                                 when(currentScreen){
@@ -128,54 +135,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                         }
                     }
 
-                    /**
-                     * Show the current situation of the connection with the DICOM server
-                     */
-                    Column(
-                        modifier = Modifier
-                            .width(200.dp)
-                            .fillMaxHeight()
-                            .padding(vertical = 15.dp)
-                            .border(1.dp, Color.LightGray)
-                    )
-                    {
-                        Column(
-                            modifier = Modifier.padding(10.dp)
-                        ) {
-                            var statusPACS by remember { mutableStateOf("unstable") }
-                            var statusColor by remember { mutableStateOf(Color.Green) }
-                            var statusText by remember { mutableStateOf("") }
-
-                            Text("Connexion avec le PACS distant :")
-                            Row(
-                                modifier = Modifier.padding(vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                when(statusPACS) {
-                                    "stable" -> {
-                                        statusColor = Color(0x29,0xCF,0x00)
-                                        statusText = "Connexion stable"
-                                    }
-
-                                    "unstable" -> {
-                                        statusColor = Color(0xFF,0x78,0x02)
-                                        statusText = "Connexion instable"
-                                    }
-
-                                    "down" -> {
-                                        statusColor = Color(0xCF,0x00,0x00)
-                                        statusText = "Connexion perdue"
-                                    }
-                                }
-
-                                Canvas(modifier = Modifier.size(15.dp)) {
-                                    drawCircle(statusColor)
-                                }
-                                Text(statusText)
-                            }
-                        }
-                    }
+                    ConnectionVerify(viewModel)
 
 
                     /**
@@ -209,6 +169,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                 verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 var isExportFormOpened by remember { mutableStateOf(false) }
+                                var isDeleteValidationDialogOpened by remember { mutableStateOf(false) }
 
                                 /**
                                  * Import Selected Lines Button
@@ -243,7 +204,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                 Button(
                                     modifier = Modifier
                                         .padding(40.dp,0.dp),
-                                    onClick = { viewModel.deleteSelectedLines() },
+                                    onClick = { isDeleteValidationDialogOpened = true },
                                     colors = ButtonColors(
                                         Color(0xCF, 0x00, 0x00), Color.White,
                                         disabledContainerColor = Color.Gray,
@@ -262,6 +223,16 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                     }
                                 }
 
+                                if (isDeleteValidationDialogOpened) {
+                                    DeleteValidationDialog(
+                                        onDismiss = { isDeleteValidationDialogOpened = false },
+                                        onConfirm = {
+                                            viewModel.deleteSelectedLines()
+                                            isDeleteValidationDialogOpened = false
+                                        }
+                                    )
+                                }
+
                                 if (isExportFormOpened){
                                     ExportFormWindow(
                                         onClose = { isExportFormOpened = false }
@@ -278,6 +249,39 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
     }
 }
 
+@Composable
+fun DeleteValidationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Confirmation de suppression") },
+        text = { Text("Êtes-vous sûr de vouloir supprimer les lignes sélectionnées ? Cette action est irréversible.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xCF, 0x00, 0x00),
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Supprimer")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Gray,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Annuler")
+            }
+        }
+    )
+}
 
 @Composable
 fun ExportInfoPanel(viewModel: ViewModelShUp){
@@ -391,7 +395,8 @@ fun Logs(logger: LoggerShUP) {
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding( horizontal = 5.dp),
         state = lazyColumnState
     ){
         items(logLines) { line ->
@@ -400,6 +405,67 @@ fun Logs(logger: LoggerShUP) {
     }
 }
 
+/**
+ * Show the current situation of the connection with the DICOM server
+ */
+@Composable
+fun ConnectionVerify(viewModel: ViewModelShUp){
+    Column(
+        modifier = Modifier
+            .width(200.dp)
+            .fillMaxHeight()
+            .padding(vertical = 15.dp)
+            .border(1.dp, Color.LightGray)
+    )
+    {
+        Column(
+            modifier = Modifier.padding(10.dp)
+        ) {
+            var statusPACS by remember { mutableStateOf("unstable") }
+            var statusColor by remember { mutableStateOf(Color.Green) }
+            var statusText by remember { mutableStateOf("") }
+
+            Text("Connexion avec le PACS distant :")
+
+            Row(
+                modifier = Modifier.padding(vertical = 5.dp).fillMaxHeight(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        try {
+                            // Simulate a connection check (replace with actual logic)
+                            val isConnected = viewModel.echoDistantPACS()
+
+                            if (isConnected) {
+                                statusPACS = "stable"
+                                statusColor = Color(0x29,0xCF,0x00)
+                                statusText = "Connexion stable avec le PACS distant."
+                            } else {
+                                statusPACS = "unstable"
+                                statusColor = Color(0xFF,0x78,0x02)
+                                statusText = "Connexion instable avec le PACS distant."
+                            }
+                        } catch (e: Exception) {
+                            statusPACS = "unstable"
+                            statusColor = Color(0xCF,0x00,0x00)
+                            statusText = "Connexion perdue avec le PACS distant. Erreur lors de la vérification de la connexion : ${e.message}"
+                        }
+
+                        delay(5000.milliseconds) // Check every 5 seconds
+                    }
+                }
+
+                Canvas(modifier = Modifier.size(15.dp)) {
+                    drawCircle(statusColor)
+                }
+
+                Text(statusText)
+            }
+        }
+    }
+}
 
 /**
  * Download Bars

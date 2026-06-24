@@ -22,6 +22,7 @@ kotlin {
             implementation("io.ktor:ktor-client-core:${ktor_version}")
             implementation("io.ktor:ktor-client-cio:${ktor_version}")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+            implementation("org.jetbrains.compose.material3.adaptive:adaptive:1.3.0-alpha07")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

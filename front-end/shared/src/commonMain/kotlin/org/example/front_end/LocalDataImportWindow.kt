@@ -173,6 +173,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     verticalArrangement = Arrangement.spacedBy(13.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
+                                    var requestLevel by remember { mutableStateOf("Patient") } // Can be set to "Patient", "Study"
+
                                     var namePatient by remember { mutableStateOf("") }
 
                                     var idPatient by remember { mutableStateOf("") }
@@ -212,7 +214,7 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                             }
                                         }
 
-                                        RadioButtonGroup(requestTypeRadioOptions, selectedReqTypeOption)
+                                        RadioButtonGroup(requestTypeRadioOptions, selectedReqTypeOption, onSelected = {selectedReqTypeOption.value = it; requestLevel = it })
                                     }
                                     Row(
                                         modifier = Modifier
@@ -451,7 +453,6 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                      * When the selected profile is "OFSEP", the verification panel is displayed. Otherwise, it is hidden
                      *  and the Tree panel becomes wider. The import button is at the bottom of the tree panel.
                      */
-
                     val profile = "OFSEP"
                     var treePanelWidth = .99f
                     if (profile=="OFSEP") {
@@ -468,7 +469,8 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                             .fillMaxWidth(treePanelWidth)
                             .fillMaxHeight(.7f),
                         verticalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    )
+                    {
                         /**
                          * Here is the tree with all the studies
                          */
@@ -638,7 +640,7 @@ fun DatePickerModalInput(
 }
 
 @Composable
-fun RadioButtonGroup(radioOptionList: List<String>,selectedRadioBtnState: MutableState<String>){
+fun RadioButtonGroup(radioOptionList: List<String>,selectedRadioBtnState: MutableState<String>, onSelected: (String)-> Unit = {}) {
     Row(
         modifier = Modifier
             .width(350.dp)
@@ -651,9 +653,7 @@ fun RadioButtonGroup(radioOptionList: List<String>,selectedRadioBtnState: Mutabl
                 modifier = Modifier
                     .selectable(
                         selected = (rOption == selectedRadioBtnState.value),
-                        onClick = {
-                            selectedRadioBtnState.value = rOption
-                        },
+                        onClick = { onSelected(rOption) },
                         role = Role.RadioButton
                     )
                     .padding(5.dp),
