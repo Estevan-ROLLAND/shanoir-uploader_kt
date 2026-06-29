@@ -3,6 +3,7 @@ package org.example.front_end
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +41,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,11 +69,13 @@ import org.example.front_end.common_elements.bars.MenuBar
 import org.example.front_end.common_elements.icons.arrow_drop_up
 import org.example.front_end.common_elements.icons.file_save
 import org.example.front_end.common_elements.icons.info
+import org.example.front_end.common_elements.utils.dicom.DicomTree
+import org.example.front_end.viewmodel.ViewModelShUp
 import java.text.SimpleDateFormat
 import java.util.Date
 
 @Composable
-fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
+fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
     MaterialTheme {
         Column(
             modifier = Modifier
@@ -193,6 +198,9 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     var modalityStudy by rememberSaveable { mutableStateOf(modalities[0]) }
                                     var showMenuModality by remember { mutableStateOf(false) }
 
+                                    var isQueryBtnEnabled by remember { mutableStateOf(false) }
+                                    var queryLaunched by remember { mutableStateOf(false) }
+
 
                                     Row(
                                         modifier = Modifier
@@ -200,7 +208,7 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        val requestTypeRadioOptions = listOf("Patient", "Etude")
+                                        val requestTypeRadioOptions = listOf("Patient", "Study")
                                         val selectedReqTypeOption = remember { mutableStateOf(requestTypeRadioOptions[0]) }
 
                                         Row {
@@ -414,12 +422,36 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                             }
                                         }
                                     }
+                                    // if all the fields are empty, the button is disabled
+                                    isQueryBtnEnabled = if (namePatient.isEmpty() && idPatient.isEmpty() && birthdayPatient == null && descStudy.isEmpty() && studyDate == null && modalityStudy=="None"){
+                                        false
+                                    } else {
+                                        true
+                                    }
+
                                     Button(
                                         modifier = Modifier
                                             .padding(top = 16.dp),
-                                        onClick = {},
+                                        enabled = isQueryBtnEnabled,
+                                        onClick = {
+                                            queryLaunched = true
+                                        },
                                     ){
                                         Text("Requêter le PACS")
+                                    }
+                                    if (queryLaunched) {
+                                        LaunchedEffect(Unit) {
+                                            viewModel.queryDistantPACS(
+                                                requestLevel == "Etude",
+                                                modalityStudy,
+                                                namePatient,
+                                                idPatient,
+                                                descStudy,
+                                                formattedBirthDay,
+                                                formattedStudyDate
+                                            )
+                                            queryLaunched = false
+                                        }
                                     }
                                 }
                             }
@@ -435,7 +467,9 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Button(
-                                        onClick = {},
+                                        onClick = {
+                                            // TODO Make the window to select the file
+                                        },
                                     ) {
                                         Icon(
                                             modifier = Modifier
@@ -453,10 +487,10 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                      * When the selected profile is "OFSEP", the verification panel is displayed. Otherwise, it is hidden
                      *  and the Tree panel becomes wider. The import button is at the bottom of the tree panel.
                      */
-                    val profile = "OFSEP"
+                    val profile = viewModel.loginHandler.getAccountType()
                     var treePanelWidth = .99f
                     if (profile=="OFSEP") {
-                        treePanelWidth = .49f
+                        treePanelWidth = .5f
                     }
 
                     /**
@@ -465,16 +499,16 @@ fun LocalDataImportWindow(onNavBarSwitch: () -> Unit) {
                     Column(
                         modifier = Modifier
                             .background(color = Color.White)
-                            .padding(20.dp)
+                            .padding(10.dp)
                             .fillMaxWidth(treePanelWidth)
-                            .fillMaxHeight(.7f),
+                            .fillMaxHeight(.707f),
                         verticalArrangement = Arrangement.SpaceBetween
                     )
                     {
                         /**
                          * Here is the tree with all the studies
                          */
-                        Column {  }
+                        DicomTree(viewModel.getPatients(), viewModel)
 
 
                         if (profile != "OFSEP") {

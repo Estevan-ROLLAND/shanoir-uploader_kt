@@ -35,6 +35,7 @@ fun WindowsHandler() {
             MenuBar(viewModel)
             when (currentScreen) {
                 Windows.IMPORT -> LocalDataImportWindow(
+                    viewModel = viewModel,
                     onNavBarSwitch = {
                         currentScreen = Windows.EXPORT
                     }

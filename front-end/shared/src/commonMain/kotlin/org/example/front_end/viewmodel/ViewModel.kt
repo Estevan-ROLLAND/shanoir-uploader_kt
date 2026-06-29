@@ -18,10 +18,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.example.front_end.common_elements.utils.DICOMConfig
 import org.example.front_end.common_elements.utils.LoggerShUP
 import org.example.front_end.common_elements.utils.LoginHandler
+import org.example.front_end.common_elements.utils.dicom.Patient
 import java.io.File
 import kotlin.math.log
 import kotlin.time.Duration.Companion.milliseconds
@@ -46,6 +51,9 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     var DICOMConfig : JsonElement by mutableStateOf(DICOMConfig("", "", "", "", "", "").getDICOMConfigAsJsonElement())
     val client = HttpClient()
+
+
+    private var media : JsonElement? = null
 
     companion object {
         @Volatile
@@ -139,7 +147,7 @@ class ViewModelShUp private constructor() : ViewModel() {
      * Echo the distant PACS to check connectivity and configuration.
      */
     suspend fun echoDistantPACS() : Boolean {
-        val response: HttpResponse = client.get("http://localhost:9903/dicom/configuration/echo") {
+        val response: HttpResponse = client.get("http://localhost:9903/dicom/echo") {
             contentType(ContentType.Application.Json)
         }
 
@@ -149,25 +157,43 @@ class ViewModelShUp private constructor() : ViewModel() {
         return DICOMEcho["success"]?.jsonPrimitive?.booleanOrNull == true
     }
 
-    suspend fun queryDistantPACS(studyRootQuery: Boolean, modality: String, patientName: String, patientID: String, studyDescription: String, patientBirthDate: String, studyDate: String) : JsonElement {
+    suspend fun queryDistantPACS(studyRootQuery: Boolean, modality: String, patientName: String, patientID: String, studyDescription: String, patientBirthDate: String, studyDate: String) {
+        val modality : String? = if (modality == "None") null else modality
+
         val response: HttpResponse = client.post("http://localhost:9903/dicom/query") {
             contentType(ContentType.Application.Json)
             setBody(
-                JsonObject(
-                    mapOf(
-                        "studyRootQuery" to JsonObject(mapOf("value" to Json.parseToJsonElement(studyRootQuery.toString()))),
-                        "modality" to JsonObject(mapOf("value" to Json.parseToJsonElement(modality))),
-                        "patientName" to JsonObject(mapOf("value" to Json.parseToJsonElement(patientName))),
-                        "patientID" to JsonObject(mapOf("value" to Json.parseToJsonElement(patientID))),
-                        "studyDescription" to JsonObject(mapOf("value" to Json.parseToJsonElement(studyDescription))),
-                        "patientBirthDate" to JsonObject(mapOf("value" to Json.parseToJsonElement(patientBirthDate))),
-                        "studyDate" to JsonObject(mapOf("value" to Json.parseToJsonElement(studyDate)))
-                    )
-                ).toString()
+                buildJsonObject {
+                    put("studyRootQuery", studyRootQuery)
+                    put("modality", modality)
+                    put("patientName", patientName)
+                    put("patientID", patientID)
+                    put("studyDescription", studyDescription)
+                    put("patientBirthDate", patientBirthDate)
+                    put("studyDate", studyDate)
+                }.toString()
             )
         }
 
+        //logger.writeLog("Query response: ${response.bodyAsText()}")
+
         val json = Json { ignoreUnknownKeys = true }
-        return json.decodeFromString<JsonElement>(response.bodyAsText())
+        println(response.bodyAsText())
+        media = json.decodeFromString<JsonElement>(response.bodyAsText())
+
+        // print the patient inside de media json element
+//        logger.writeLog("Patients inside media json element: ${getPatients()}")
+    }
+
+    fun getPatients(): List<Patient> {
+        val patients = mutableListOf<Patient>()
+        media?.jsonObject?.get("children")?.jsonArray?.forEach { patientElement ->
+            val patientJsonObject = patientElement.jsonObject.get("patient")?.jsonObject
+            if (patientJsonObject != null) {
+                val patient = Patient(patientJsonObject)
+                patients.add(patient)
+            }
+        }
+        return patients
     }
 }

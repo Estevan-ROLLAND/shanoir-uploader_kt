@@ -19,7 +19,11 @@ class LoggerShUP (
     }
 
     fun writeLog(message: String) {
-        logFile.appendText("$message\n")
+        if (logFile.length() > 0) {
+            logFile.appendText("\n\n$message")
+        } else {
+            logFile.appendText(message)
+        }
     }
 
     fun getLogContent(): String {

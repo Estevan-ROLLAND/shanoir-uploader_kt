@@ -6,7 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 class LoginHandler () {
-    val accountTypes = listOf("Admin", "User", "Guest")
+    val accountTypes = listOf("OFSEP", "Neurinfo", "Guest")
     private var currentAccountType: String = ""
     private var currentUsername: String = ""
 

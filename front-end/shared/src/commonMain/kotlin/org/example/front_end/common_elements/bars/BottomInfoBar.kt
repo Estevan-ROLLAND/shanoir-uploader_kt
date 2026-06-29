@@ -1,6 +1,8 @@
 package org.example.front_end.common_elements.bars
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollbarStyle
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -381,7 +384,7 @@ fun Logs(logger: LoggerShUP) {
                 val lines = newContent.lines().filter { it.isNotEmpty() }
                 if (lines.isNotEmpty()) {
                     // animate to the last line
-                    lazyColumnState.animateScrollToItem(lines.lastIndex)
+                    lazyColumnState.animateScrollToItem(lines.last().lastIndex)
                 }
             }
 
@@ -393,15 +396,32 @@ fun Logs(logger: LoggerShUP) {
     // Display each log line as an item so we can scroll to the last line index
     val logLines = logs.lines()
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding( horizontal = 5.dp),
-        state = lazyColumnState
-    ){
-        items(logLines) { line ->
-            Text(text = line)
+    Row {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth(.98f)
+                .padding( horizontal = 5.dp),
+            state = lazyColumnState
+        ){
+            items(logLines) { line ->
+                Text(text = line)
+            }
         }
+        VerticalScrollbar(
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .padding(horizontal = 5.dp, vertical = 5.dp)
+                .fillMaxHeight(),
+            adapter = rememberScrollbarAdapter(lazyColumnState),
+            style = ScrollbarStyle(
+                minimalHeight = 16.dp,
+                thickness = 10.dp,
+                shape = RoundedCornerShape(5.dp),
+                hoverDurationMillis = 300,
+                unhoverColor = Color(0x67,0x50,0xA4).copy(alpha = 0.5f),
+                hoverColor = Color(0x67,0x50,0xA4)
+            )
+        )
     }
 }
 
@@ -421,7 +441,7 @@ fun ConnectionVerify(viewModel: ViewModelShUp){
         Column(
             modifier = Modifier.padding(10.dp)
         ) {
-            var statusPACS by remember { mutableStateOf("unstable") }
+            var statusPACS by remember { mutableStateOf("stable") }
             var statusColor by remember { mutableStateOf(Color.Green) }
             var statusText by remember { mutableStateOf("") }
 
@@ -448,7 +468,7 @@ fun ConnectionVerify(viewModel: ViewModelShUp){
                                 statusText = "Connexion instable avec le PACS distant."
                             }
                         } catch (e: Exception) {
-                            statusPACS = "unstable"
+                            statusPACS = "error"
                             statusColor = Color(0xCF,0x00,0x00)
                             statusText = "Connexion perdue avec le PACS distant. Erreur lors de la vérification de la connexion : ${e.message}"
                         }
