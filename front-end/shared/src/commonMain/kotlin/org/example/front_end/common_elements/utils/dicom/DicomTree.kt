@@ -57,7 +57,7 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp) {
     )
     {
         items(data.size) { index ->
-            DicomTreeItem(patient = data[index])
+            DicomTreeItem(patient = data[index], viewModel = viewModel)
         }
     }
     HorizontalScrollbar(
@@ -77,7 +77,7 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp) {
 }
 
 @Composable
-fun DicomTreeItem(patient: Patient) {
+fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp) {
     var isPatientExpanded by remember { mutableStateOf(false) }
 
     Column(
@@ -88,31 +88,43 @@ fun DicomTreeItem(patient: Patient) {
     {
         Row(
             modifier= Modifier
-                .fillMaxWidth()
-                .clickable(
-                    onClick = {
-                        isPatientExpanded = !isPatientExpanded
-                    }
-                ),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         )
         {
             Icon(
                 modifier = Modifier
-                    .padding(start = 4.dp),
+                    .padding(start = 4.dp)
+                    .clickable(
+                        onClick = {
+                            isPatientExpanded = !isPatientExpanded
+                        }
+                    ),
                 imageVector = if (isPatientExpanded) arrow_drop_down else arrow_right,
                 contentDescription = "Arrow Icon"
             )
-            Image(
-                painter = painterResource(Res.drawable.subject_16x16),
-                contentDescription = "Subject Icon",
-                modifier = Modifier.padding(end = 8.dp)
-            )
-            Text(
+            Row(
                 modifier = Modifier
-                    .padding(top = 8.dp, bottom = 8.dp, end= 8.dp),
-                text= patient.patientName + " [patientID = " + patient.patientId + ", patientBirthDate = " + patient.patientBirthDate + "]",
+                    .clickable(
+                        onClick = {
+                            // Handle study click event here
+                            viewModel.setSelectedPatient(patient)
+                        }
+                    )
             )
+            {
+
+                Image(
+                    painter = painterResource(Res.drawable.subject_16x16),
+                    contentDescription = "Subject Icon",
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    modifier = Modifier
+                        .padding(top = 8.dp, bottom = 8.dp, end = 8.dp),
+                    text = patient.patientName + " [patientID = " + patient.patientId + ", patientBirthDate = " + patient.patientBirthDate + "]",
+                )
+            }
         }
 
         if (isPatientExpanded) {
@@ -122,29 +134,41 @@ fun DicomTreeItem(patient: Patient) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 25.dp)
-                        .clickable(
-                            onClick = {
-                                isStudyExpanded=!isStudyExpanded
-                            }
-                        ),
+                        .padding(start = 25.dp),
                     verticalAlignment = Alignment.CenterVertically
                 )
                 {
                     Icon(
+                        modifier = Modifier
+                            .clickable(
+                                onClick = {
+                                    isStudyExpanded=!isStudyExpanded
+                                }
+                            ),
                         imageVector = if (isStudyExpanded) arrow_drop_down else arrow_right,
                         contentDescription = "Arrow Icon"
                     )
-                    Image(
-                        painter = painterResource(Res.drawable.study_dicom_16x16),
-                        contentDescription = "study Icon",
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    Text(
+                    Row(
                         modifier = Modifier
-                            .padding(top = 8.dp, bottom = 8.dp, end= 8.dp),
-                        text= "[${study.studyDate}] ${study.studyDescription} + [number of series = ${study.series.size}, studyInstanceUID = ${study.studyInstanceUID}]",
+                            .clickable(
+                                onClick = {
+                                    // Handle study click event here
+                                    viewModel.setSelectedPatient(patient)
+                                }
+                            )
                     )
+                    {
+                        Image(
+                            painter = painterResource(Res.drawable.study_dicom_16x16),
+                            contentDescription = "study Icon",
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(
+                            modifier = Modifier
+                                .padding(top = 8.dp, bottom = 8.dp, end = 8.dp),
+                            text = "[${study.studyDate}] ${study.studyDescription} + [number of series = ${study.series.size}, studyInstanceUID = ${study.studyInstanceUID}]",
+                        )
+                    }
                 }
 
                 if (isStudyExpanded) {
@@ -156,6 +180,7 @@ fun DicomTreeItem(patient: Patient) {
                                 .clickable(
                                     onClick = {
                                         // Handle click event here
+                                        viewModel.setSelectedPatient(patient)
                                     }
                                 ),
                             verticalAlignment = Alignment.CenterVertically

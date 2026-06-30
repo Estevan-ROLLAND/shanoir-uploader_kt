@@ -54,6 +54,7 @@ class ViewModelShUp private constructor() : ViewModel() {
 
 
     private var media : JsonElement? = null
+    private var selectedPatient : Patient? = null
 
     companion object {
         @Volatile
@@ -195,5 +196,14 @@ class ViewModelShUp private constructor() : ViewModel() {
             }
         }
         return patients
+    }
+
+    fun setSelectedPatient(patient: Patient?) {
+        selectedPatient = patient
+        logger.writeLog("Selected patient: ${patient?.patientName} (${patient?.patientId})")
+    }
+
+    fun getSelectedPatient(): Patient? {
+        return selectedPatient
     }
 }

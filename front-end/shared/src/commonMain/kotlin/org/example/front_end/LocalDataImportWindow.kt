@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -61,6 +62,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.rememberWindowState
 import org.example.front_end.common_elements.bars.CategoryBarElement
 import org.example.front_end.common_elements.icons.calendar_month
 import org.example.front_end.common_elements.icons.arrow_forward
@@ -71,8 +74,11 @@ import org.example.front_end.common_elements.icons.file_save
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.utils.dicom.DicomTree
 import org.example.front_end.viewmodel.ViewModelShUp
+import java.awt.FileDialog
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import javax.swing.JFileChooser
 
 @Composable
 fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
@@ -90,7 +96,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(1.dp, Color.LightGray)
-            ){
+            )
+            {
                 Row(
                     modifier = Modifier
                         .clickable(
@@ -142,6 +149,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    var patient by remember { mutableStateOf(viewModel.getSelectedPatient()) }
+
                     /**
                      * Panel PACS Request / Import from Disk
                      */
@@ -201,7 +210,6 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     var isQueryBtnEnabled by remember { mutableStateOf(false) }
                                     var queryLaunched by remember { mutableStateOf(false) }
 
-
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth(),
@@ -244,7 +252,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             modifier=Modifier.width(350.dp),
                                             value = namePatient,
                                             onValueChange = {namePatient = it},
-                                            placeholder = { Text("NOM, Prénom") }
+                                            placeholder = { Text("NOM, Prénom") },
+                                            singleLine = true
                                         )
                                     }
                                     Row(
@@ -259,7 +268,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             modifier=Modifier.width(350.dp),
                                             value = idPatient,
                                             onValueChange = {idPatient = it},
-                                            placeholder = { Text("ID") }
+                                            placeholder = { Text("ID") },
+                                            singleLine = true
                                         )
                                     }
                                     Row(
@@ -441,6 +451,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     }
                                     if (queryLaunched) {
                                         LaunchedEffect(Unit) {
+                                            viewModel.setSelectedPatient(null)
+                                            patient = null
                                             viewModel.queryDistantPACS(
                                                 requestLevel == "Etude",
                                                 modalityStudy,
@@ -457,6 +469,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                             }
 
                             "Disk" -> {
+                                var isFilePickerOpened by remember { mutableStateOf(false) }
+                                var selectedFile by remember { mutableStateOf<File?>(null) }
 
                                 // Add from disk
                                 Row(
@@ -468,7 +482,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 ) {
                                     Button(
                                         onClick = {
-                                            // TODO Make the window to select the file
+                                            isFilePickerOpened = true
                                         },
                                     ) {
                                         Icon(
@@ -477,6 +491,17 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             imageVector = file_save,
                                             contentDescription = "")
                                         Text("Sélectionner un fichier")
+                                    }
+                                }
+
+                                if (isFilePickerOpened) {
+                                    val fileChooser = JFileChooser()
+                                    val result = fileChooser.showOpenDialog(null)
+                                    if (result == JFileChooser.APPROVE_OPTION) {
+                                        selectedFile = fileChooser.selectedFile
+                                        isFilePickerOpened = false
+                                    } else if (result == JFileChooser.CANCEL_OPTION) {
+                                        isFilePickerOpened = false
                                     }
                                 }
                             }
@@ -535,8 +560,6 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                         }
                     }
 
-
-
                     if(profile == "OFSEP") {
                         /**
                          * Panel Verification
@@ -560,7 +583,10 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ){
                                 val genderRadioOptions = listOf("Féminin", "Masculin", "Autre")
-                                val selectedGenderOption = remember { mutableStateOf(genderRadioOptions[0]) }
+                                val selectedGenderOption = remember { mutableStateOf(patient?.patientSex) }
+                                if (patient?.patientSex == null) {
+                                    selectedGenderOption.value = "Autre"
+                                }
 
                                 Row(
                                     modifier = Modifier
@@ -571,8 +597,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     Text("Nom : ")
                                     TextField(
                                         modifier=Modifier.width(350.dp),
-                                        value = "",
-                                        onValueChange = {},
+                                        value = patient?.patientName ?: "",
+                                        onValueChange = {}, // is not editable
                                         readOnly = true
                                     )
                                 }
@@ -585,7 +611,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     Text("Prénom : ")
                                     TextField(
                                         modifier=Modifier.width(350.dp),
-                                        value = "",
+                                        value = patient?.patientFirstName ?: "",
                                         onValueChange = {},
                                         readOnly = true
                                     )
@@ -599,7 +625,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     Text("Nom de naissance : ")
                                     TextField(
                                         modifier=Modifier.width(350.dp),
-                                        value = "",
+                                        value = patient?.patientBirthName ?: "",
                                         onValueChange = {},
                                         readOnly = false
                                     )
@@ -613,7 +639,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     Text("Date de naissance : ")
                                     TextField(
                                         modifier=Modifier.width(350.dp),
-                                        value = "",
+                                        value = patient?.patientBirthDate ?: "",
                                         onValueChange = {},
                                         readOnly = true
                                     )
@@ -626,7 +652,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 ) {
 
                                     Text("Sexe :")
-                                    RadioButtonGroup(genderRadioOptions,selectedGenderOption)
+                                    RadioButtonGroup(genderRadioOptions, selectedGenderOption as MutableState<String>)
                                 }
                                 Button(
                                     onClick = {},
