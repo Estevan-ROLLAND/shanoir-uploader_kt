@@ -9,8 +9,10 @@ import kotlinx.serialization.json.jsonPrimitive
 class Patient(patient: JsonObject) {
     val patientId: String
     val patientName: String
-    val patientFirstName: String
-    val patientBirthName: String
+    var patientFirstName: String
+        private set
+    var patientBirthName: String
+        private set
     val patientBirthDate: String
     val patientSex: String
     val patientIdentityRemoved: Boolean
@@ -31,6 +33,14 @@ class Patient(patient: JsonObject) {
 
         val studiesJsonArray = patient["studies"]?.jsonArray ?: emptyList()
         studies = studiesJsonArray.map { Study(it.jsonObject) }
+    }
+
+    fun setPatientFirstName(firstName: String) {
+        patientFirstName = firstName
+    }
+
+    fun setBirthName(birthName: String) {
+        patientBirthName = birthName
     }
 
     override fun toString(): String {

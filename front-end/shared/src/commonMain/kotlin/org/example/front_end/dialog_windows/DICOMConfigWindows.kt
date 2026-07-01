@@ -58,7 +58,7 @@ fun ConfigurationDialogWindow(onDismiss: () -> Unit, viewModel: ViewModelShUp) {
     ) {
         val dicomConfig = viewModel.DICOMConfig
 
-        var isDistantPACSConnected by remember { mutableStateOf(true) } // TODO() Implement connection check logic
+        var isDistantPACSConnected by remember { mutableStateOf(true) }
 
         var isErrorWindowOpened by remember { mutableStateOf(false) }
         var isVerificationDialogOpened by remember { mutableStateOf(false) }

@@ -43,7 +43,7 @@ import org.example.front_end.viewmodel.ViewModelShUp
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp) {
+fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp, onSelected: (Patient) -> Unit) {
     val state = rememberLazyListState()
     val scrollState = rememberScrollState()
 
@@ -57,7 +57,7 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp) {
     )
     {
         items(data.size) { index ->
-            DicomTreeItem(patient = data[index], viewModel = viewModel)
+            DicomTreeItem(patient = data[index], viewModel = viewModel, onSelected = onSelected)
         }
     }
     HorizontalScrollbar(
@@ -77,8 +77,8 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp) {
 }
 
 @Composable
-fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp) {
-    var isPatientExpanded by remember { mutableStateOf(false) }
+fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp, onSelected: (Patient) -> Unit) {
+    var isPatientExpanded by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -108,7 +108,7 @@ fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp) {
                     .clickable(
                         onClick = {
                             // Handle study click event here
-                            viewModel.setSelectedPatient(patient)
+                            onSelected(patient)
                         }
                     )
             )
@@ -153,7 +153,7 @@ fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp) {
                             .clickable(
                                 onClick = {
                                     // Handle study click event here
-                                    viewModel.setSelectedPatient(patient)
+                                    onSelected(patient)
                                 }
                             )
                     )
@@ -180,7 +180,7 @@ fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp) {
                                 .clickable(
                                     onClick = {
                                         // Handle click event here
-                                        viewModel.setSelectedPatient(patient)
+                                        onSelected(patient)
                                     }
                                 ),
                             verticalAlignment = Alignment.CenterVertically

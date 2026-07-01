@@ -179,7 +179,7 @@ class ViewModelShUp private constructor() : ViewModel() {
         //logger.writeLog("Query response: ${response.bodyAsText()}")
 
         val json = Json { ignoreUnknownKeys = true }
-        println(response.bodyAsText())
+        //println(response.bodyAsText())
         media = json.decodeFromString<JsonElement>(response.bodyAsText())
 
         // print the patient inside de media json element
@@ -192,9 +192,13 @@ class ViewModelShUp private constructor() : ViewModel() {
             val patientJsonObject = patientElement.jsonObject.get("patient")?.jsonObject
             if (patientJsonObject != null) {
                 val patient = Patient(patientJsonObject)
+                if (patient.patientFirstName == ""){
+                    patient.setPatientFirstName(patient.patientName)
+                }
                 patients.add(patient)
             }
         }
+        println(patients)
         return patients
     }
 
@@ -205,5 +209,10 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     fun getSelectedPatient(): Patient? {
         return selectedPatient
+    }
+
+    fun resetMedia() {
+        media = null
+        selectedPatient = null
     }
 }

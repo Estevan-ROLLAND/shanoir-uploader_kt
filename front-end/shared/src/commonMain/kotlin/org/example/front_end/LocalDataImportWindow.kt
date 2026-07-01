@@ -73,6 +73,7 @@ import org.example.front_end.common_elements.icons.arrow_drop_up
 import org.example.front_end.common_elements.icons.file_save
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.utils.dicom.DicomTree
+import org.example.front_end.common_elements.utils.dicom.Patient
 import org.example.front_end.viewmodel.ViewModelShUp
 import java.awt.FileDialog
 import java.io.File
@@ -149,7 +150,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    var patient by remember { mutableStateOf(viewModel.getSelectedPatient()) }
+                    var patientSelected : Patient? by remember { mutableStateOf(viewModel.getSelectedPatient()) }
 
                     /**
                      * Panel PACS Request / Import from Disk
@@ -176,6 +177,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                             CategoryBarElement("Requêter le PACS", (activeImportType=="PACS"),{activeImportType="PACS"},20.sp, 20)
                             CategoryBarElement("Ajouter depuis le Disk", (activeImportType == "Disk"),{activeImportType="Disk"}, 20.sp, 20)
                         }
+
 
                         when(activeImportType) {
                             "PACS" -> {
@@ -432,6 +434,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             }
                                         }
                                     }
+
                                     // if all the fields are empty, the button is disabled
                                     isQueryBtnEnabled = if (namePatient.isEmpty() && idPatient.isEmpty() && birthdayPatient == null && descStudy.isEmpty() && studyDate == null && modalityStudy=="None"){
                                         false
@@ -449,10 +452,11 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     ){
                                         Text("Requêter le PACS")
                                     }
+
                                     if (queryLaunched) {
                                         LaunchedEffect(Unit) {
                                             viewModel.setSelectedPatient(null)
-                                            patient = null
+                                            patientSelected = null
                                             viewModel.queryDistantPACS(
                                                 requestLevel == "Etude",
                                                 modalityStudy,
@@ -533,7 +537,10 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                         /**
                          * Here is the tree with all the studies
                          */
-                        DicomTree(viewModel.getPatients(), viewModel)
+                        DicomTree(viewModel.getPatients(), viewModel, onSelected = { patient ->
+                            viewModel.setSelectedPatient(patient)
+                            patientSelected = patient
+                        })
 
 
                         if (profile != "OFSEP") {
@@ -583,8 +590,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ){
                                 val genderRadioOptions = listOf("Féminin", "Masculin", "Autre")
-                                val selectedGenderOption = remember { mutableStateOf(patient?.patientSex) }
-                                if (patient?.patientSex == null) {
+                                val selectedGenderOption = remember { mutableStateOf(patientSelected?.patientSex) }
+                                if (patientSelected?.patientSex == "null") {
                                     selectedGenderOption.value = "Autre"
                                 }
 
@@ -596,8 +603,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 ) {
                                     Text("Nom : ")
                                     TextField(
-                                        modifier=Modifier.width(350.dp),
-                                        value = patient?.patientName ?: "",
+                                        modifier=Modifier.width(330.dp),
+                                        value = patientSelected?.patientName ?: "",
                                         onValueChange = {}, // is not editable
                                         readOnly = true
                                     )
@@ -610,8 +617,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 ) {
                                     Text("Prénom : ")
                                     TextField(
-                                        modifier=Modifier.width(350.dp),
-                                        value = patient?.patientFirstName ?: "",
+                                        modifier=Modifier.width(330.dp),
+                                        value = patientSelected?.patientFirstName ?: "",
                                         onValueChange = {},
                                         readOnly = true
                                     )
@@ -623,10 +630,19 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("Nom de naissance : ")
+                                    TooltipBox(
+                                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                                        tooltip = { PlainTooltip { Text("Par défaut, le nom du patient est copié. Vous pouvez le changer si le nom de naissance est différent.") } },
+                                        state = rememberTooltipState()
+                                    ) {
+                                        Icon(info, "")
+                                    }
                                     TextField(
-                                        modifier=Modifier.width(350.dp),
-                                        value = patient?.patientBirthName ?: "",
-                                        onValueChange = {},
+                                        modifier=Modifier.width(330.dp),
+                                        value = patientSelected?.patientBirthName ?: "",
+                                        onValueChange = {
+                                            patientSelected?.setBirthName(it)
+                                        },
                                         readOnly = false
                                     )
                                 }
@@ -638,8 +654,8 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 ) {
                                     Text("Date de naissance : ")
                                     TextField(
-                                        modifier=Modifier.width(350.dp),
-                                        value = patient?.patientBirthDate ?: "",
+                                        modifier=Modifier.width(330.dp),
+                                        value = patientSelected?.patientBirthDate ?: "",
                                         onValueChange = {},
                                         readOnly = true
                                     )
@@ -655,7 +671,9 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     RadioButtonGroup(genderRadioOptions, selectedGenderOption as MutableState<String>)
                                 }
                                 Button(
-                                    onClick = {},
+                                    onClick = {
+                                        patientSelected = null
+                                    },
                                 ){
                                     Text("Téléchargement (PACS) ou copier (CD/DVD)")
                                 }
