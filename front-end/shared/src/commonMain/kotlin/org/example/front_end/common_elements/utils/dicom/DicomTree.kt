@@ -3,6 +3,7 @@ package org.example.front_end.common_elements.utils.dicom
 import androidx.compose.foundation.HorizontalScrollbar
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollbarStyle
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -152,8 +153,8 @@ fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp, onSelected: (Patie
                         modifier = Modifier
                             .clickable(
                                 onClick = {
-                                    // Handle study click event here
                                     onSelected(patient)
+                                    viewModel.setSelectedStudy(study)
                                 }
                             )
                     )
@@ -172,15 +173,23 @@ fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp, onSelected: (Patie
                 }
 
                 if (isStudyExpanded) {
-                    study.series.forEach { series ->
+                    study.series.forEach { serie ->
+                        var selected by remember { mutableStateOf(false) }
+                        val backgroundColor = if (selected) Color(0xEA, 0xDD, 0xFF) else Color.Transparent
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 65.dp)
+                                .background(backgroundColor)
                                 .clickable(
                                     onClick = {
-                                        // Handle click event here
                                         onSelected(patient)
+                                        selected = !selected
+                                        if (selected) {
+                                            viewModel.addSelectedSerie(serie)
+                                        } else {
+                                            viewModel.removeSelectedSerie(serie)
+                                        }
                                     }
                                 ),
                             verticalAlignment = Alignment.CenterVertically
@@ -189,12 +198,12 @@ fun DicomTreeItem(patient: Patient, viewModel: ViewModelShUp, onSelected: (Patie
                             Image(
                                 painter = painterResource(Res.drawable.serie_16x16),
                                 contentDescription = "Serie Icon",
-                                modifier = Modifier.padding(end = 8.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp)
                             )
                             Text(
                                 modifier = Modifier
                                     .padding(top = 8.dp, bottom = 8.dp, end= 8.dp),
-                                text= "${series.seriesNumber} [${series.modality}] ${series.seriesInstanceUID} (${series.numberOfSeriesRelatedInstances})",
+                                text= "${serie.seriesNumber} [${serie.modality}] ${serie.seriesInstanceUID} (${serie.numberOfSeriesRelatedInstances})",
                             )
                         }
                     }

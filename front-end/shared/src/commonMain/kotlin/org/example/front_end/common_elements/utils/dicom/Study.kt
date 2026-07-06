@@ -21,6 +21,18 @@ class Study(jsonObject: JsonObject) {
         series = seriesJsonArray.map { Serie(it.jsonObject) }
     }
 
+    fun addSerie(serie: Serie) {
+        series.toMutableList().add(serie)
+    }
+
+    fun removeSerie(serie: Serie) {
+        series.toMutableList().remove(serie)
+    }
+
+    fun resetSeries() {
+        series.toMutableList().clear()
+    }
+
     override fun toString(): String {
         return "Study(studyInstanceUID='$studyInstanceUID', studyDate='$studyDate', studyDescription=$studyDescription, series=$series)"
     }

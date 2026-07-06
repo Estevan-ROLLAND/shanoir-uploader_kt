@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -17,16 +18,25 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.example.front_end.common_elements.utils.DICOMConfig
 import org.example.front_end.common_elements.utils.LoggerShUP
 import org.example.front_end.common_elements.utils.LoginHandler
+import org.example.front_end.common_elements.utils.dicom.DicomRetrieveService
+import org.example.front_end.common_elements.utils.dicom.ImportJobRequest
+import org.example.front_end.common_elements.utils.dicom.ImportJobStatus
 import org.example.front_end.common_elements.utils.dicom.Patient
+import org.example.front_end.common_elements.utils.dicom.Serie
+import org.example.front_end.common_elements.utils.dicom.Study
+import org.example.front_end.common_elements.utils.dicom.toJsonString
 import java.io.File
 import kotlin.math.log
 import kotlin.time.Duration.Companion.milliseconds
@@ -51,6 +61,7 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     var DICOMConfig : JsonElement by mutableStateOf(DICOMConfig("", "", "", "", "", "").getDICOMConfigAsJsonElement())
     val client = HttpClient()
+    val dicomRetrieveService = DicomRetrieveService(client)
 
 
     private var media : JsonElement? = null
@@ -116,6 +127,7 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     /**
      * Fetches the DICOM configuration from the server and updates the DICOMConfig property.
+     * Uses the /configuration endpoint with a GET request to retrieve the configuration.
      */
     suspend fun getDICOMConfig() {
         val response: HttpResponse = client.get("http://localhost:9903/dicom/configuration") {
@@ -132,6 +144,7 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     /**
      * Updates the DICOM configuration on the server with the current DICOMConfig property.
+     * Uses the /configuration endpoint with a PUT request to send the updated configuration.
      */
     suspend fun setDICOMConfig() {
         println("Current DICOM configuration BEFORE UPDATE : $DICOMConfig")
@@ -146,6 +159,7 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     /**
      * Echo the distant PACS to check connectivity and configuration.
+     * Uses the /echo endpoint of the DICOM server.
      */
     suspend fun echoDistantPACS() : Boolean {
         val response: HttpResponse = client.get("http://localhost:9903/dicom/echo") {
@@ -158,6 +172,10 @@ class ViewModelShUp private constructor() : ViewModel() {
         return DICOMEcho["success"]?.jsonPrimitive?.booleanOrNull == true
     }
 
+    /**
+     * Retrieves the list of patients from the distant PACS.
+     * Uses the /query endpoint of the DICOM service.
+     */
     suspend fun queryDistantPACS(studyRootQuery: Boolean, modality: String, patientName: String, patientID: String, studyDescription: String, patientBirthDate: String, studyDate: String) {
         val modality : String? = if (modality == "None") null else modality
 
@@ -176,7 +194,7 @@ class ViewModelShUp private constructor() : ViewModel() {
             )
         }
 
-        //logger.writeLog("Query response: ${response.bodyAsText()}")
+//        logger.writeLog("Query response: ${response.bodyAsText()}")
 
         val json = Json { ignoreUnknownKeys = true }
         //println(response.bodyAsText())
@@ -188,15 +206,13 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     fun getPatients(): List<Patient> {
         val patients = mutableListOf<Patient>()
-        media?.jsonObject?.get("children")?.jsonArray?.forEach { patientElement ->
-            val patientJsonObject = patientElement.jsonObject.get("patient")?.jsonObject
-            if (patientJsonObject != null) {
-                val patient = Patient(patientJsonObject)
-                if (patient.patientFirstName == ""){
-                    patient.setPatientFirstName(patient.patientName)
-                }
-                patients.add(patient)
+        val patientJsonObject = media?.jsonObject?.get("firstTreeNode")?.jsonObject?.get("patient")?.jsonObject
+        if (patientJsonObject != null) {
+            val patient = Patient(patientJsonObject)
+            if (patient.patientFirstName == ""){
+                patient.setPatientFirstName(patient.patientName)
             }
+            patients.add(patient)
         }
         println(patients)
         return patients
@@ -204,15 +220,72 @@ class ViewModelShUp private constructor() : ViewModel() {
 
     fun setSelectedPatient(patient: Patient?) {
         selectedPatient = patient
+        //selectedPatient?.resetSelectedStudy()
         logger.writeLog("Selected patient: ${patient?.patientName} (${patient?.patientId})")
+    }
+
+    fun setSelectedStudy(study: Study) {
+        selectedPatient?.setSelectedStudy(study)
+        logger.writeLog("Selected study: ${study.studyDescription} (${study.studyDate})")
+    }
+
+    fun addSelectedSerie(serie: Serie) {
+        val parentStudy = selectedPatient?.studies?.firstOrNull { it.studyInstanceUID == serie.seriesInstanceUID }
+        parentStudy?.addSerie(serie)
+        logger.writeLog("Added serie: ${serie.seriesDescription} (${serie.seriesDate}) to study: ${parentStudy?.studyDescription}")
+    }
+
+    fun removeSelectedSerie(serie: Serie) {
+        val parentStudy = selectedPatient?.studies?.firstOrNull { it.studyInstanceUID == serie.seriesInstanceUID }
+        parentStudy?.removeSerie(serie)
+        logger.writeLog("Removed serie: ${serie.seriesDescription} (${serie.seriesDate}) from study: ${parentStudy?.studyDescription}")
+    }
+
+    fun resetSelectedSeries(study: Study) {
+        study.resetSeries()
     }
 
     fun getSelectedPatient(): Patient? {
         return selectedPatient
     }
 
-    fun resetMedia() {
-        media = null
-        selectedPatient = null
+
+    /**
+     * Uses the /retrieve endpoint of the DICOM service to retrieve a specific study or series from the distant PACS.
+     */
+    suspend fun retrieveData(importJob: ImportJobRequest) : String {
+        logger.writeLog("ImportJobRequest: $importJob")
+
+        val response: HttpResponse = client.post("http://localhost:9903/dicom/retrieve") {
+            contentType(ContentType.Application.Json)
+            setBody(importJob.toJsonString())
+        }
+
+        println(response.bodyAsText())
+        logger.writeLog("Retrieve response: ${response.bodyAsText()}")
+
+        val json = Json { ignoreUnknownKeys = true }
+        val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+        return body["importJobId"]?.jsonPrimitive?.content
+            ?: throw IllegalStateException("No importJobId returned")
+    }
+
+    /**
+     * Uses the /importJobs/{jobId}/progress endpoint of the DICOM service to get the progress of a specific import job.
+     */
+    suspend fun getImportJobProgress(jobId: String): ImportJobStatus {
+        val response: HttpResponse = client.get("http://localhost:9903/dicom/importJobs/$jobId/progress") {
+            contentType(ContentType.Application.Json)
+        }
+
+        val json = Json { ignoreUnknownKeys = true }
+        val statusJson = json.parseToJsonElement(response.bodyAsText()).jsonObject
+        return ImportJobStatus(
+            percentage = statusJson["percentage"]?.jsonPrimitive?.int ?: 0,
+            currentStep = statusJson["currentStep"]?.jsonPrimitive?.content ?: "",
+            reportSummary = statusJson["reportSummary"]?.jsonPrimitive?.contentOrNull,
+            done = statusJson["done"]?.jsonPrimitive?.boolean ?: false,
+            success = statusJson["success"]?.jsonPrimitive?.boolean ?: false
+        )
     }
 }

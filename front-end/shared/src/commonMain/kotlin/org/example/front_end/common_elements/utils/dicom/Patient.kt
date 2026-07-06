@@ -18,7 +18,8 @@ class Patient(patient: JsonObject) {
     val patientIdentityRemoved: Boolean
     val deIdentificationMethod: String
     val subject: String
-    val studies: List<Study>
+    var studies: List<Study>
+        private set
 
     init {
         patientName = patient["patientName"]?.jsonPrimitive?.content ?: ""
@@ -41,6 +42,14 @@ class Patient(patient: JsonObject) {
 
     fun setBirthName(birthName: String) {
         patientBirthName = birthName
+    }
+
+    fun resetSelectedStudy() {
+        studies.toMutableList().clear()
+    }
+
+    fun setSelectedStudy(study: Study) {
+        studies = listOf(study)
     }
 
     override fun toString(): String {

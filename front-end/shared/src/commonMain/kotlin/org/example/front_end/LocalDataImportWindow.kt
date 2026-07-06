@@ -47,6 +47,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
+import kotlinx.coroutines.launch
 import org.example.front_end.common_elements.bars.CategoryBarElement
 import org.example.front_end.common_elements.icons.calendar_month
 import org.example.front_end.common_elements.icons.arrow_forward
@@ -73,7 +75,13 @@ import org.example.front_end.common_elements.icons.arrow_drop_up
 import org.example.front_end.common_elements.icons.file_save
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.utils.dicom.DicomTree
+import org.example.front_end.common_elements.utils.dicom.ImportJobRequest
+import org.example.front_end.common_elements.utils.dicom.ImportJobStatus
 import org.example.front_end.common_elements.utils.dicom.Patient
+import org.example.front_end.common_elements.utils.dicom.PatientRequest
+import org.example.front_end.common_elements.utils.dicom.SeriesRequest
+import org.example.front_end.common_elements.utils.dicom.StudyRequest
+import org.example.front_end.common_elements.utils.dicom.SubjectRequest
 import org.example.front_end.viewmodel.ViewModelShUp
 import java.awt.FileDialog
 import java.io.File
@@ -151,6 +159,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     var patientSelected : Patient? by remember { mutableStateOf(viewModel.getSelectedPatient()) }
+                    var queryLaunched by remember { mutableStateOf(false) }
 
                     /**
                      * Panel PACS Request / Import from Disk
@@ -210,7 +219,6 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     var showMenuModality by remember { mutableStateOf(false) }
 
                                     var isQueryBtnEnabled by remember { mutableStateOf(false) }
-                                    var queryLaunched by remember { mutableStateOf(false) }
 
                                     Row(
                                         modifier = Modifier
@@ -521,6 +529,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                     if (profile=="OFSEP") {
                         treePanelWidth = .5f
                     }
+                    val scope = rememberCoroutineScope()
 
                     /**
                      * Panel Study Tree
@@ -534,13 +543,15 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                         verticalArrangement = Arrangement.SpaceBetween
                     )
                     {
-                        /**
-                         * Here is the tree with all the studies
-                         */
-                        DicomTree(viewModel.getPatients(), viewModel, onSelected = { patient ->
-                            viewModel.setSelectedPatient(patient)
-                            patientSelected = patient
-                        })
+                        if (!queryLaunched && viewModel.getPatients().isNotEmpty()) {
+                            /**
+                             * Here is the tree with all the studies
+                             */
+                            DicomTree(viewModel.getPatients(), viewModel, onSelected = { patient ->
+                                viewModel.setSelectedPatient(patient)
+                                patientSelected = patient
+                            })
+                        }
 
 
                         if (profile != "OFSEP") {
@@ -559,7 +570,38 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Button(
-                                    onClick = {},
+                                    onClick = {
+                                        val selectedPatient = patientSelected ?: run {
+                                            viewModel.logger.writeLog("Téléchargement annulé : aucun patient sélectionné.")
+                                            return@Button
+                                        }
+                                        val selectedStudy = selectedPatient.studies.firstOrNull() ?: run {
+                                            viewModel.logger.writeLog("Téléchargement annulé : aucune étude sélectionnée pour le patient ${selectedPatient.patientName}.")
+                                            return@Button
+                                        }
+
+                                        val importJob = ImportJobRequest(
+                                            fromPacs = true,
+                                            patient = PatientRequest(patientName = selectedPatient.patientName),
+                                            subject = SubjectRequest(identifier = selectedPatient.subject),
+                                            study = StudyRequest(
+                                                studyInstanceUID = selectedStudy.studyInstanceUID,
+                                                studyDate = selectedStudy.studyDate,
+                                                studyDescription = selectedStudy.studyDescription ?: ""
+                                            ),
+                                            selectedSeries = selectedStudy.series.map { series ->
+                                                SeriesRequest(
+                                                    seriesInstanceUID = series.seriesInstanceUID,
+                                                    seriesNumber = series.seriesNumber,
+                                                    seriesDescription = series.seriesDescription ?: ""
+                                                )
+                                            }
+                                        )
+
+                                        scope.launch {
+                                            viewModel.retrieveData(importJob)
+                                        }
+                                    }
                                 ) {
                                     Text("Importer l'examen")
                                 }
@@ -593,6 +635,12 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 val selectedGenderOption = remember { mutableStateOf(patientSelected?.patientSex) }
                                 if (patientSelected?.patientSex == "null") {
                                     selectedGenderOption.value = "Autre"
+                                }
+                                var patientBirthName by remember { mutableStateOf("") }
+                                if (!queryLaunched && patientSelected != null) {
+                                    patientBirthName = patientSelected!!.patientBirthName
+                                } else if (patientSelected == null) {
+                                    patientBirthName = ""
                                 }
 
                                 Row(
@@ -639,9 +687,9 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                     }
                                     TextField(
                                         modifier=Modifier.width(330.dp),
-                                        value = patientSelected?.patientBirthName ?: "",
+                                        value = patientBirthName,
                                         onValueChange = {
-                                            patientSelected?.setBirthName(it)
+                                            patientBirthName = it
                                         },
                                         readOnly = false
                                     )
@@ -672,9 +720,44 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 }
                                 Button(
                                     onClick = {
+                                        val selectedPatient = patientSelected ?: run {
+                                            viewModel.logger.writeLog("Téléchargement annulé : aucun patient sélectionné.")
+                                            return@Button
+                                        }
+                                        val selectedStudy = selectedPatient.studies.firstOrNull() ?: run {
+                                            viewModel.logger.writeLog("Téléchargement annulé : aucune étude sélectionnée pour le patient ${selectedPatient.patientName}.")
+                                            return@Button
+                                        }
+
+                                        selectedPatient.setBirthName(patientBirthName)
+                                        viewModel.logger.writeLog("Patient vérifié : $selectedPatient")
+
+                                        val importJob = ImportJobRequest(
+                                            fromPacs = true,
+                                            patient = PatientRequest(patientName = selectedPatient.patientName),
+                                            subject = SubjectRequest(identifier = selectedPatient.subject),
+                                            study = StudyRequest(
+                                                studyInstanceUID = selectedStudy.studyInstanceUID,
+                                                studyDate = selectedStudy.studyDate,
+                                                studyDescription = selectedStudy.studyDescription ?: ""
+                                            ),
+                                            selectedSeries = selectedStudy.series.map { series ->
+                                                SeriesRequest(
+                                                    seriesInstanceUID = series.seriesInstanceUID,
+                                                    seriesNumber = series.seriesNumber,
+                                                    seriesDescription = series.seriesDescription ?: ""
+                                                )
+                                            }
+                                        )
+
+                                        patientBirthName = ""
                                         patientSelected = null
+
+                                        scope.launch {
+                                            viewModel.retrieveData(importJob)
+                                        }
                                     },
-                                ){
+                                ) {
                                     Text("Téléchargement (PACS) ou copier (CD/DVD)")
                                 }
                             }
