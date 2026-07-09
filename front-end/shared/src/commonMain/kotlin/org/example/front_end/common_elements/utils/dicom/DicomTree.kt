@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -55,6 +56,7 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp, onSelected: (Patien
             .fillMaxWidth()
             .fillMaxHeight(heightLazyColumn)
             .horizontalScroll(scrollState),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     )
     {
         items(data.size) { index ->

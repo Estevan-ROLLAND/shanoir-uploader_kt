@@ -19,6 +19,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,6 +61,7 @@ import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,6 +78,7 @@ import org.example.front_end.common_elements.icons.arrow_drop_up
 import org.example.front_end.common_elements.icons.file_save
 import org.example.front_end.common_elements.icons.info
 import org.example.front_end.common_elements.utils.dicom.DicomTree
+import org.example.front_end.common_elements.utils.dicom.EquipmentRequest
 import org.example.front_end.common_elements.utils.dicom.ImportJobRequest
 import org.example.front_end.common_elements.utils.dicom.ImportJobStatus
 import org.example.front_end.common_elements.utils.dicom.Patient
@@ -82,6 +86,7 @@ import org.example.front_end.common_elements.utils.dicom.PatientRequest
 import org.example.front_end.common_elements.utils.dicom.SeriesRequest
 import org.example.front_end.common_elements.utils.dicom.StudyRequest
 import org.example.front_end.common_elements.utils.dicom.SubjectRequest
+import org.example.front_end.common_elements.utils.dicom.toJsonString
 import org.example.front_end.viewmodel.ViewModelShUp
 import java.awt.FileDialog
 import java.io.File
@@ -263,7 +268,16 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             value = namePatient,
                                             onValueChange = {namePatient = it},
                                             placeholder = { Text("NOM, Prénom") },
-                                            singleLine = true
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions.Default.copy(
+                                                imeAction = ImeAction.Done
+                                            ),
+                                            keyboardActions = KeyboardActions(
+                                                onDone = {
+                                                    // Change the state of queryLaunched to true when the user presses the "Done" button on the keyboard
+                                                    queryLaunched = true
+                                                }
+                                            ),
                                         )
                                     }
                                     Row(
@@ -279,7 +293,16 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             value = idPatient,
                                             onValueChange = {idPatient = it},
                                             placeholder = { Text("ID") },
-                                            singleLine = true
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions.Default.copy(
+                                                imeAction = ImeAction.Done
+                                            ),
+                                            keyboardActions = KeyboardActions(
+                                                onDone = {
+                                                    // Change the state of queryLaunched to true when the user presses the "Done" button on the keyboard
+                                                    queryLaunched = true
+                                                }
+                                            ),
                                         )
                                     }
                                     Row(
@@ -348,7 +371,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             modifier=Modifier.width(350.dp),
                                             value = descStudy,
                                             onValueChange = {descStudy = it},
-                                            placeholder = { Text("Description") }
+                                            placeholder = { Text("Description") },
                                         )
                                     }
                                     Row(
@@ -461,7 +484,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                         Text("Requêter le PACS")
                                     }
 
-                                    if (queryLaunched) {
+                                    if (isQueryBtnEnabled && queryLaunched) {
                                         LaunchedEffect(Unit) {
                                             viewModel.setSelectedPatient(null)
                                             patientSelected = null
@@ -535,23 +558,27 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                      * Panel Study Tree
                      */
                     Column(
+                        verticalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .background(color = Color.White)
                             .padding(10.dp)
                             .fillMaxWidth(treePanelWidth)
-                            .fillMaxHeight(.707f),
-                        verticalArrangement = Arrangement.SpaceBetween
+                            .fillMaxHeight(.707f)
                     )
                     {
-                        if (!queryLaunched && viewModel.getPatients().isNotEmpty()) {
-                            /**
-                             * Here is the tree with all the studies
-                             */
-                            DicomTree(viewModel.getPatients(), viewModel, onSelected = { patient ->
-                                viewModel.setSelectedPatient(patient)
-                                patientSelected = patient
-                            })
+                        val data = if (!queryLaunched && viewModel.getPatients().isNotEmpty()) {
+                            viewModel.getPatients()
+                        } else {
+                            listOf()
                         }
+
+                        /**
+                         * Here is the tree with all the studies
+                         */
+                        DicomTree(data, viewModel, onSelected = { patient ->
+                            viewModel.setSelectedPatient(patient)
+                            patientSelected = patient
+                        })
 
 
                         if (profile != "OFSEP") {
@@ -582,7 +609,12 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
 
                                         val importJob = ImportJobRequest(
                                             fromPacs = true,
-                                            patient = PatientRequest(patientName = selectedPatient.patientName),
+                                            patient = PatientRequest(
+                                                patientID = selectedPatient.patientId,
+                                                patientName = selectedPatient.patientName,
+                                                patientBirthDate = selectedPatient.patientBirthDate,
+                                                patientSex = selectedPatient.patientSex
+                                            ),
                                             subject = SubjectRequest(identifier = selectedPatient.subject),
                                             study = StudyRequest(
                                                 studyInstanceUID = selectedStudy.studyInstanceUID,
@@ -593,10 +625,22 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                                 SeriesRequest(
                                                     seriesInstanceUID = series.seriesInstanceUID,
                                                     seriesNumber = series.seriesNumber,
-                                                    seriesDescription = series.seriesDescription ?: ""
+                                                    seriesDescription = series.seriesDescription ?: "",
+                                                    selected = true,
+                                                    equipment = EquipmentRequest(
+                                                        manufacturer = series.equipement["manufacturer"] ?: "",
+                                                        manufacturerModelName = series.equipement["manufacturerModelName"] ?: "",
+                                                        deviceSerialNumber = series.equipement["deviceSerialNumber"] ?: "",
+                                                        stationName = series.equipement["stationName"] ?: "",
+                                                        magneticFieldStrength = series.equipement["magneticFieldStrength"] ?: "",
+                                                        modality = series.equipement["modality"] ?: ""
+                                                    )
                                                 )
                                             }
                                         )
+
+
+                                        println("ImportJobRequest: $importJob")
 
                                         scope.launch {
                                             viewModel.retrieveData(importJob)
@@ -620,7 +664,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                 .width(550.dp),
                         ) {
                             Text(
-                                text = "3. Vérification du patient",
+                                text = "Vérification du patient",
                                 fontSize = 30.sp
                             )
                             // Form
@@ -730,11 +774,16 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                         }
 
                                         selectedPatient.setBirthName(patientBirthName)
-                                        viewModel.logger.writeLog("Patient vérifié : $selectedPatient")
+                                        //viewModel.logger.writeLog("Patient vérifié : $selectedPatient")
 
                                         val importJob = ImportJobRequest(
                                             fromPacs = true,
-                                            patient = PatientRequest(patientName = selectedPatient.patientName),
+                                            patient = PatientRequest(
+                                                patientID = selectedPatient.patientId,
+                                                patientName = selectedPatient.patientName,
+                                                patientBirthDate = selectedPatient.patientBirthDate,
+                                                patientSex = selectedPatient.patientSex
+                                            ),
                                             subject = SubjectRequest(identifier = selectedPatient.subject),
                                             study = StudyRequest(
                                                 studyInstanceUID = selectedStudy.studyInstanceUID,
@@ -745,10 +794,21 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                                 SeriesRequest(
                                                     seriesInstanceUID = series.seriesInstanceUID,
                                                     seriesNumber = series.seriesNumber,
-                                                    seriesDescription = series.seriesDescription ?: ""
+                                                    seriesDescription = series.seriesDescription ?: "",
+                                                    selected = true,
+                                                    equipment = EquipmentRequest(
+                                                        manufacturer = series.equipement["manufacturer"] ?: "",
+                                                        manufacturerModelName = series.equipement["manufacturerModelName"] ?: "",
+                                                        deviceSerialNumber = series.equipement["deviceSerialNumber"] ?: "",
+                                                        stationName = series.equipement["stationName"] ?: "",
+                                                        magneticFieldStrength = series.equipement["magneticFieldStrength"] ?: "",
+                                                        modality = series.equipement["modality"] ?: ""
+                                                    )
                                                 )
                                             }
                                         )
+
+                                        //viewModel.logger.writeLog("ImportJobRequest: ${importJob.toJsonString()}")
 
                                         patientBirthName = ""
                                         patientSelected = null

@@ -118,7 +118,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                         )
 
                                         // TODO() les bar de téléchargements
-                                        LinearDeterminateIndicator()
+                                        DownloadBars(viewModel = viewModel, logger = logger)
                                     }
 
                                     Windows.EXPORT -> {
@@ -487,92 +487,77 @@ fun ConnectionVerify(viewModel: ViewModelShUp){
     }
 }
 
-/**
- * Download Bars
- */
 
 @Composable
-fun DownloadBar(percentage: Int = 1) {
-    val progressFactor by remember(percentage) {mutableStateOf(percentage * 0.01f)}
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(8.dp)
-                .width(400.dp)
-                .height(20.dp)
-                .border(width = 4.dp,
-                    color = Color(0x67,0x50,0xA4),
-                    shape = RoundedCornerShape(50.dp)
-                )
-                .clip(RoundedCornerShape(
-                    topStartPercent = 50,
-                    topEndPercent = 50,
-                    bottomEndPercent = 50,
-                    bottomStartPercent = 50
-                ))
-                .background(Color.Transparent),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth(progressFactor)
-                    .background(color = Color(0x67,0x50,0xA4)),
-                enabled = true,
-                elevation = null,
-                colors = buttonColors(
-                    containerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent
-                )
-            ){ }
-        }
+fun DownloadBars(viewModel: ViewModelShUp, logger: LoggerShUP) {
+    var importsSnapshot by remember { mutableStateOf(viewModel.imports.toList()) }
 
-        Text(
-            text = "${percentage} %",
-            fontSize = 20.sp
-        )
-    }
-
-}
-
-@Composable
-fun LinearDeterminateIndicator() {
-    var currentProgress by remember { mutableFloatStateOf(0f) }
-    var loading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope() // Create a coroutine scope
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Button(onClick = {
-            loading = true
-            scope.launch {
-                loadProgress { progress ->
-                    currentProgress = progress
+    LaunchedEffect(Unit) {
+        while (true) {
+            try {
+                for ((importId, _) in viewModel.imports.toList()) {
+                    val status = viewModel.getImportJobProgress(importId)
+                    viewModel.updateImports(importId, status)
                 }
-                loading = false // Reset loading when the coroutine finishes
+                // Mettre à jour le snapshot pour déclencher la recomposition
+                importsSnapshot = viewModel.imports.toList()
+            } catch (e: Exception) {
+                logger.writeLog("Erreur lors de la récupération des imports : ${e.message}")
             }
-        }, enabled = !loading) {
-            Text("Start loading")
-        }
 
-        if (loading) {
-            LinearProgressIndicator(
-                progress = { currentProgress },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            delay(500.milliseconds)
         }
     }
-}
 
-/** Iterate the progress value */
-suspend fun loadProgress(updateProgress: (Float) -> Unit) {
-    for (i in 1..100) {
-        updateProgress(i.toFloat() / 100)
-        delay(100)
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    )
+    {
+        items(importsSnapshot, key = { it.first }) { (importId, importProgress) ->
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+            {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                )
+                {
+                    Text(
+                        text = "Import ID : $importId"
+                    )
+
+                    // DOWNLOAD BAR
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth(.6f)
+                            .height(20.dp),
+                        progress = { importProgress.percentage.toFloat() },
+                    )
+                    // PERCENTAGE
+                    Text(
+                        text = "${importProgress.percentage} %"
+                    )
+                    // CURRENTSTEP
+                    Text(
+                        text = importProgress.currentStep
+                    )
+                    Text(
+                        text = importProgress.done.toString()
+                    )
+                    // SUCCESS
+                    Text(
+                        text = "Success : ${importProgress.success}",
+                        color = if (importProgress.success) Color(0x29, 0xCF, 0x00) else Color(0xCF, 0x00, 0x00)
+                    )
+                }
+            }
+        }
     }
 }

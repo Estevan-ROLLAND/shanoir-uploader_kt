@@ -67,6 +67,9 @@ class ViewModelShUp private constructor() : ViewModel() {
     private var media : JsonElement? = null
     private var selectedPatient : Patient? = null
 
+
+    val imports = mutableMapOf<String, ImportJobStatus>()
+
     companion object {
         @Volatile
         private var INSTANCE: ViewModelShUp? = null
@@ -194,20 +197,21 @@ class ViewModelShUp private constructor() : ViewModel() {
             )
         }
 
-//        logger.writeLog("Query response: ${response.bodyAsText()}")
+        //logger.writeLog("Query response: ${response.bodyAsText()}")
 
         val json = Json { ignoreUnknownKeys = true }
         //println(response.bodyAsText())
         media = json.decodeFromString<JsonElement>(response.bodyAsText())
 
         // print the patient inside de media json element
-//        logger.writeLog("Patients inside media json element: ${getPatients()}")
+        //logger.writeLog("Patients inside media json element: ${getPatients()}")
     }
 
     fun getPatients(): List<Patient> {
         val patients = mutableListOf<Patient>()
-        val patientJsonObject = media?.jsonObject?.get("firstTreeNode")?.jsonObject?.get("patient")?.jsonObject
-        if (patientJsonObject != null) {
+        val patientsJsonArray = media?.jsonObject?.get("patients")?.jsonArray ?: return emptyList()
+        patientsJsonArray.forEach { patientJsonElement ->
+            val patientJsonObject = patientJsonElement.jsonObject["patient"]?.jsonObject ?: return@forEach
             val patient = Patient(patientJsonObject)
             if (patient.patientFirstName == ""){
                 patient.setPatientFirstName(patient.patientName)
@@ -253,21 +257,42 @@ class ViewModelShUp private constructor() : ViewModel() {
     /**
      * Uses the /retrieve endpoint of the DICOM service to retrieve a specific study or series from the distant PACS.
      */
-    suspend fun retrieveData(importJob: ImportJobRequest) : String {
-        logger.writeLog("ImportJobRequest: $importJob")
 
-        val response: HttpResponse = client.post("http://localhost:9903/dicom/retrieve") {
-            contentType(ContentType.Application.Json)
-            setBody(importJob.toJsonString())
+    suspend fun retrieveData(importJob: ImportJobRequest)  {
+        val json = Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+            explicitNulls = false
         }
 
-        println(response.bodyAsText())
-        logger.writeLog("Retrieve response: ${response.bodyAsText()}")
+        val payload = importJob.toJsonString()
+        //logger.writeLog("ImportJobRequest: $payload")
 
-        val json = Json { ignoreUnknownKeys = true }
-        val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
-        return body["importJobId"]?.jsonPrimitive?.content
-            ?: throw IllegalStateException("No importJobId returned")
+        val response = client.post("http://localhost:9903/dicom/retrieve") {
+            contentType(ContentType.Application.Json)
+            setBody(payload)
+        }
+
+        val responseText = response.bodyAsText()
+        val body = json.parseToJsonElement(responseText).jsonObject
+
+        try {
+            val importJobId = body["importJobId"]?.jsonPrimitive?.content
+                ?: throw IllegalStateException("No importJobId returned : $body",)
+
+            imports[importJobId] = ImportJobStatus(
+                percentage = 0,
+                currentStep = "STARTED",
+                reportSummary = null,
+                done = false,
+                success = false
+            )
+        } catch (e: Exception) {
+            // DO NOT throw an exception here, just log the error and return
+            logger.writeLog("Error parsing importJobId from response: ${e.message}")
+        }
+
+
     }
 
     /**
@@ -287,5 +312,9 @@ class ViewModelShUp private constructor() : ViewModel() {
             done = statusJson["done"]?.jsonPrimitive?.boolean ?: false,
             success = statusJson["success"]?.jsonPrimitive?.boolean ?: false
         )
+    }
+
+    fun updateImports(jobId: String, status: ImportJobStatus) {
+        imports[jobId] = status
     }
 }

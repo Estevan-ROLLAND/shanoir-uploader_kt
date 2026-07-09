@@ -17,7 +17,12 @@ data class ImportJobRequest(
 )
 
 @Serializable
-data class PatientRequest(val patientName: String)
+data class PatientRequest(
+    val patientID: String,
+    val patientName: String,
+    val patientBirthDate: String,
+    val patientSex: String
+)
 
 @Serializable
 data class SubjectRequest(val identifier: String)
@@ -34,12 +39,27 @@ data class SeriesRequest(
     val seriesInstanceUID: String,
     val seriesNumber: String,
     val seriesDescription: String,
+    val selected: Boolean = true,
+    val equipment: EquipmentRequest
+)
+
+@Serializable
+data class EquipmentRequest(
+    val manufacturer: String? = null,
+    val manufacturerModelName: String? = null,
+    val deviceSerialNumber: String? = null,
+    val stationName: String? = null,
+    val magneticFieldStrength: String? = null,
+    val modality: String? = null
 )
 
 fun ImportJobRequest.toJsonString(): String = buildJsonObject {
     put("fromPacs", fromPacs)
     putJsonObject("patient") {
+        put("patientID", patient.patientID)
         put("patientName", patient.patientName)
+        put("patientBirthDate", patient.patientBirthDate)
+        put("patientSex", patient.patientSex)
     }
     putJsonObject("subject") {
         put("identifier", subject.identifier)
@@ -51,10 +71,19 @@ fun ImportJobRequest.toJsonString(): String = buildJsonObject {
     }
     putJsonArray("selectedSeries") {
         selectedSeries.forEach { series ->
-            add(buildJsonObject {
-            put("seriesInstanceUID", series.seriesInstanceUID)
-            put("seriesNumber", series.seriesNumber)
-            put("seriesDescription", series.seriesDescription)
+                add(buildJsonObject {
+                    put("seriesInstanceUID", series.seriesInstanceUID)
+                    put("seriesNumber", series.seriesNumber)
+                    put("seriesDescription", series.seriesDescription)
+                    put("selected", series.selected)
+                    putJsonObject("equipment") {
+                        put("manufacturer", series.equipment.manufacturer)
+                        put("manufacturerModelName", series.equipment.manufacturerModelName)
+                        put("deviceSerialNumber", series.equipment.deviceSerialNumber)
+                        put("stationName", series.equipment.stationName)
+                        put("magneticFieldStrength", series.equipment.magneticFieldStrength)
+                        put("modality", series.equipment.modality)
+                    }
             })
         }
     }
