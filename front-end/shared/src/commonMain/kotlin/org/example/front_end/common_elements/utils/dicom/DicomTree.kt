@@ -46,8 +46,7 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp, onSelected: (Patient) -> Unit) {
-    val state = rememberLazyListState()
-    val scrollState = rememberScrollState()
+    val horitzontalScrollState = rememberScrollState()
 
     val heightLazyColumn = if (viewModel.loginHandler.getAccountType() == "OFSEP") .96f else .88f
 
@@ -55,8 +54,8 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp, onSelected: (Patien
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(heightLazyColumn)
-            .horizontalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+            .horizontalScroll(horitzontalScrollState),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
     )
     {
         items(data.size) { index ->
@@ -67,7 +66,7 @@ fun DicomTree(data: List<Patient>, viewModel: ViewModelShUp, onSelected: (Patien
         modifier = Modifier
             .fillMaxWidth()
         ,
-        adapter = rememberScrollbarAdapter(scrollState),
+        adapter = rememberScrollbarAdapter(horitzontalScrollState),
         style = ScrollbarStyle(
             minimalHeight = 16.dp,
             thickness = 10.dp,

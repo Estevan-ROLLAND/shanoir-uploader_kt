@@ -40,6 +40,8 @@ import org.example.front_end.common_elements.utils.LoginHandler
 import org.example.front_end.dialog_windows.AboutShUpDialogWindow
 import org.example.front_end.viewmodel.ViewModelShUp
 import org.jetbrains.compose.resources.painterResource
+import java.io.File
+import javax.swing.JFileChooser
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -159,9 +161,14 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                     onDismissRequest = {isFileMenuOpened = false},
                     offset = DpOffset(x = -212.dp, y=-40.dp)
                 ) {
+
+                    var isFilePickerOpened by remember { mutableStateOf(false) }
+                    var selectedFile by remember { mutableStateOf<File?>(null) }
+
                     DropdownMenuItem(
                         onClick = {
                             isFileMenuOpened = false
+                            isFilePickerOpened = !isFilePickerOpened
                         },
                         text = {
                             Text(
@@ -176,6 +183,17 @@ fun DropDownMenuShUp(isOpened: Boolean = true, onDismiss: () -> Unit, viewModel:
                             )
                         }
                     )
+
+                    if (isFilePickerOpened) {
+                        val fileChooser = JFileChooser()
+                        val result = fileChooser.showOpenDialog(null)
+                        if (result == JFileChooser.APPROVE_OPTION) {
+                            selectedFile = fileChooser.selectedFile
+                            isFilePickerOpened = false
+                        } else if (result == JFileChooser.CANCEL_OPTION) {
+                            isFilePickerOpened = false
+                        }
+                    }
                 }
             }
         )

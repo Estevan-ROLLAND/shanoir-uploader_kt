@@ -339,11 +339,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
 
                                             if (showBirthDatePickerDialog) {
                                                 DatePickerModalInput(onDateSelected = {
-                                                    if (it == null){
-                                                        birthdayPatient
-                                                    }else{
-                                                        birthdayPatient = it
-                                                    }
+                                                    birthdayPatient = it
                                                 },
                                                     onDismiss = {showBirthDatePickerDialog = false}
                                                 )
@@ -408,11 +404,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
 
                                             if (showStudyDatePickerDialog) {
                                                 DatePickerModalInput(onDateSelected = {
-                                                    if (it == null){
-                                                        studyDate
-                                                    }else{
-                                                        studyDate = it
-                                                    }
+                                                    studyDate = it
                                                 },
                                                     onDismiss = {showStudyDatePickerDialog = false}
                                                 )
@@ -611,7 +603,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             fromPacs = true,
                                             patient = PatientRequest(
                                                 patientID = selectedPatient.patientId,
-                                                patientName = selectedPatient.patientName,
+                                                patientName = selectedPatient.patientFirstName + "\\^" + selectedPatient.patientName,
                                                 patientBirthDate = selectedPatient.patientBirthDate,
                                                 patientSex = selectedPatient.patientSex
                                             ),
@@ -780,7 +772,7 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                             fromPacs = true,
                                             patient = PatientRequest(
                                                 patientID = selectedPatient.patientId,
-                                                patientName = selectedPatient.patientName,
+                                                patientName = selectedPatient.patientFirstName + "\\^" + selectedPatient.patientName,
                                                 patientBirthDate = selectedPatient.patientBirthDate,
                                                 patientSex = selectedPatient.patientSex
                                             ),
@@ -797,12 +789,12 @@ fun LocalDataImportWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) 
                                                     seriesDescription = series.seriesDescription ?: "",
                                                     selected = true,
                                                     equipment = EquipmentRequest(
-                                                        manufacturer = series.equipement["manufacturer"] ?: "",
-                                                        manufacturerModelName = series.equipement["manufacturerModelName"] ?: "",
-                                                        deviceSerialNumber = series.equipement["deviceSerialNumber"] ?: "",
-                                                        stationName = series.equipement["stationName"] ?: "",
-                                                        magneticFieldStrength = series.equipement["magneticFieldStrength"] ?: "",
-                                                        modality = series.equipement["modality"] ?: ""
+                                                        manufacturer = series.equipement["manufacturer"],
+                                                        manufacturerModelName = series.equipement["manufacturerModelName"],
+                                                        deviceSerialNumber = series.equipement["deviceSerialNumber"],
+                                                        stationName = series.equipement["stationName"],
+                                                        magneticFieldStrength = series.equipement["magneticFieldStrength"],
+                                                        modality = series.equipement["modality"]
                                                     )
                                                 )
                                             }

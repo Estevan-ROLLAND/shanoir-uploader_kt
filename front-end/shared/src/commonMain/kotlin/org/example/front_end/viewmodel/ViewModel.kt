@@ -28,6 +28,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.example.front_end.common_elements.utils.DICOMConfig
+import org.example.front_end.common_elements.utils.ExportToServerTable
 import org.example.front_end.common_elements.utils.LoggerShUP
 import org.example.front_end.common_elements.utils.LoginHandler
 import org.example.front_end.common_elements.utils.dicom.DicomRetrieveService
@@ -47,17 +48,7 @@ class ViewModelShUp private constructor() : ViewModel() {
     val logger = LoggerShUP(
         File("/home/estevan/Documents/shanoir-uploader_kt/front-end/shared/src/commonMain/composeResources/files/logs.txt") // use the file logs.txt in the resources folder files
     )
-    var testData by mutableStateOf(listOf(
-        listOf("P1","John Doe","IPP_Random","10/08/2019","IRM1","FINISHED"),
-        listOf("P2","John Doe","IPP_Random","10/08/2019","IRM1","ERROR"),
-        listOf("P3","John Doe","IPP_Random","10/08/2019","IRM1","READY"),
-        listOf("P4","John Doe","IPP_Random","10/08/2019","IRM1","CHECK_OK"),
-        listOf("P5","John Doe","IPP_Random","10/08/2019","IRM1","CHECK_KO"),
-    ))
-
-    var errorLines by mutableStateOf(listOf<List<String>>())
-    var selectedLines by mutableStateOf(listOf<List<String>>())
-    var enableImportBtn by mutableStateOf(false)
+    val exportTable = ExportToServerTable(logger)
 
     var DICOMConfig : JsonElement by mutableStateOf(DICOMConfig("", "", "", "", "", "").getDICOMConfigAsJsonElement())
     val client = HttpClient()
@@ -69,6 +60,11 @@ class ViewModelShUp private constructor() : ViewModel() {
 
 
     val imports = mutableMapOf<String, ImportJobStatus>()
+
+    fun setImports(imports: Map<String, ImportJobStatus>) {
+        this.imports.clear()
+        this.imports.putAll(imports)
+    }
 
     companion object {
         @Volatile
@@ -83,52 +79,10 @@ class ViewModelShUp private constructor() : ViewModel() {
         }
     }
 
-    init {
-        errorLines = testData.filter { it[5] == "ERROR" }
-    }
-
-    // Imported Lines Table
-
-    fun addLineToSelected(data: List<String>){
-        if (!selectedLines.contains(data)) {
-            selectedLines = selectedLines + listOf(data)
-        }
-        checkEnableImportBtn()
-    }
-
-    fun removeLineAsSelected(data: List<String>){
-        if (selectedLines.contains(data)){
-            selectedLines = selectedLines.filterNot { it == data }
-        }
-        checkEnableImportBtn()
-    }
-
-    fun deleteSelectedLines() {
-        println(testData)
-        val linesToDelete = selectedLines.toList()
-        if (linesToDelete.isEmpty()) return
-
-        testData = testData.filterNot { linesToDelete.contains(it) }
-        selectedLines = emptyList()
-        logger.writeLog("Deleted ${linesToDelete.size} selected lines.")
-        println(testData)
-        checkEnableImportBtn()
-    }
-
-    fun deleteLine(data: List<String>) {
-        testData = testData.filterNot { it == data }
-        logger.writeLog("Deleted line: $data")
-        removeLineAsSelected(data)
-    }
-
-    fun checkEnableImportBtn(){
-        enableImportBtn = selectedLines.size == 1 && (selectedLines.last()[5] == "READY" || selectedLines.last()[5] == "ERROR")
-    }
-
-
     // DICOM configuration management
 
     /**
+     * ENDPOINT FOR DICOM SERVICE
      * Fetches the DICOM configuration from the server and updates the DICOMConfig property.
      * Uses the /configuration endpoint with a GET request to retrieve the configuration.
      */
@@ -146,6 +100,7 @@ class ViewModelShUp private constructor() : ViewModel() {
     }
 
     /**
+     * ENDPOINT FOR DICOM SERVICE
      * Updates the DICOM configuration on the server with the current DICOMConfig property.
      * Uses the /configuration endpoint with a PUT request to send the updated configuration.
      */
@@ -161,6 +116,7 @@ class ViewModelShUp private constructor() : ViewModel() {
     }
 
     /**
+     * ENDPOINT FOR DICOM SERVICE
      * Echo the distant PACS to check connectivity and configuration.
      * Uses the /echo endpoint of the DICOM server.
      */
@@ -176,6 +132,7 @@ class ViewModelShUp private constructor() : ViewModel() {
     }
 
     /**
+     * ENDPOINT FOR DICOM SERVICE
      * Retrieves the list of patients from the distant PACS.
      * Uses the /query endpoint of the DICOM service.
      */
@@ -207,57 +164,10 @@ class ViewModelShUp private constructor() : ViewModel() {
         //logger.writeLog("Patients inside media json element: ${getPatients()}")
     }
 
-    fun getPatients(): List<Patient> {
-        val patients = mutableListOf<Patient>()
-        val patientsJsonArray = media?.jsonObject?.get("patients")?.jsonArray ?: return emptyList()
-        patientsJsonArray.forEach { patientJsonElement ->
-            val patientJsonObject = patientJsonElement.jsonObject["patient"]?.jsonObject ?: return@forEach
-            val patient = Patient(patientJsonObject)
-            if (patient.patientFirstName == ""){
-                patient.setPatientFirstName(patient.patientName)
-            }
-            patients.add(patient)
-        }
-        println(patients)
-        return patients
-    }
-
-    fun setSelectedPatient(patient: Patient?) {
-        selectedPatient = patient
-        //selectedPatient?.resetSelectedStudy()
-        logger.writeLog("Selected patient: ${patient?.patientName} (${patient?.patientId})")
-    }
-
-    fun setSelectedStudy(study: Study) {
-        selectedPatient?.setSelectedStudy(study)
-        logger.writeLog("Selected study: ${study.studyDescription} (${study.studyDate})")
-    }
-
-    fun addSelectedSerie(serie: Serie) {
-        val parentStudy = selectedPatient?.studies?.firstOrNull { it.studyInstanceUID == serie.seriesInstanceUID }
-        parentStudy?.addSerie(serie)
-        logger.writeLog("Added serie: ${serie.seriesDescription} (${serie.seriesDate}) to study: ${parentStudy?.studyDescription}")
-    }
-
-    fun removeSelectedSerie(serie: Serie) {
-        val parentStudy = selectedPatient?.studies?.firstOrNull { it.studyInstanceUID == serie.seriesInstanceUID }
-        parentStudy?.removeSerie(serie)
-        logger.writeLog("Removed serie: ${serie.seriesDescription} (${serie.seriesDate}) from study: ${parentStudy?.studyDescription}")
-    }
-
-    fun resetSelectedSeries(study: Study) {
-        study.resetSeries()
-    }
-
-    fun getSelectedPatient(): Patient? {
-        return selectedPatient
-    }
-
-
     /**
+     * ENDPOINT FOR DICOM SERVICE
      * Uses the /retrieve endpoint of the DICOM service to retrieve a specific study or series from the distant PACS.
      */
-
     suspend fun retrieveData(importJob: ImportJobRequest)  {
         val json = Json {
             ignoreUnknownKeys = true
@@ -296,6 +206,7 @@ class ViewModelShUp private constructor() : ViewModel() {
     }
 
     /**
+     * ENDPOINT FOR DICOM SERVICE
      * Uses the /importJobs/{jobId}/progress endpoint of the DICOM service to get the progress of a specific import job.
      */
     suspend fun getImportJobProgress(jobId: String): ImportJobStatus {
@@ -312,6 +223,63 @@ class ViewModelShUp private constructor() : ViewModel() {
             done = statusJson["done"]?.jsonPrimitive?.boolean ?: false,
             success = statusJson["success"]?.jsonPrimitive?.boolean ?: false
         )
+    }
+
+    suspend fun getWorkFolder() : File {
+        val response: HttpResponse = client.get("http://localhost:9903/dicom/workFolder") {
+            contentType(ContentType.Application.Json)
+        }
+
+        val json = Json { ignoreUnknownKeys = true }
+        val workFolderJson = json.parseToJsonElement(response.bodyAsText()).jsonObject
+        println(workFolderJson)
+        val workFolderPath = workFolderJson["workFolderPath"]?.jsonPrimitive?.content ?: throw IllegalStateException("No workFolder returned : $workFolderJson")
+        return File(workFolderPath)
+    }
+
+
+    // DICOM Objects Management
+
+    fun getPatients(): List<Patient> {
+        val patients = mutableListOf<Patient>()
+        val patientsJsonArray = media?.jsonObject?.get("patients")?.jsonArray ?: return emptyList()
+        patientsJsonArray.forEach { patientJsonElement ->
+            val patientJsonObject = patientJsonElement.jsonObject["patient"]?.jsonObject ?: return@forEach
+            val patient = Patient(patientJsonObject)
+            if (patient.patientFirstName == ""){
+                patient.setPatientFirstName(patient.patientName)
+            }
+            patients.add(patient)
+        }
+        println(patients)
+        return patients
+    }
+
+    fun setSelectedPatient(patient: Patient?) {
+        selectedPatient = patient
+        //selectedPatient?.resetSelectedStudy()
+        //logger.writeLog("Selected patient: ${patient?.patientName} (${patient?.patientId})")
+    }
+
+    fun setSelectedStudy(study: Study) {
+        selectedPatient?.setSelectedStudy(study)
+        //logger.writeLog("Selected study: ${study.studyDescription} (${study.studyDate})")
+    }
+
+    fun addSelectedSerie(serie: Serie) {
+        val parentStudy = selectedPatient?.studies?.firstOrNull { it.studyInstanceUID == serie.seriesInstanceUID }
+        parentStudy?.addSerie(serie)
+        logger.writeLog("Added serie: ${serie.seriesDescription} (${serie.seriesDate}) to study: ${parentStudy?.studyDescription}")
+    }
+
+    fun removeSelectedSerie(serie: Serie) {
+        val parentStudy = selectedPatient?.studies?.firstOrNull { it.studyInstanceUID == serie.seriesInstanceUID }
+        parentStudy?.removeSerie(serie)
+        logger.writeLog("Removed serie: ${serie.seriesDescription} (${serie.seriesDate}) from study: ${parentStudy?.studyDescription}")
+    }
+
+    fun getSelectedPatient(): Patient? {
+        return selectedPatient
     }
 
     fun updateImports(jobId: String, status: ImportJobStatus) {

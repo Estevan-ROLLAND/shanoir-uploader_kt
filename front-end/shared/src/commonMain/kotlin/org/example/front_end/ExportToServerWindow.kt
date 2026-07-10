@@ -14,13 +14,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -119,12 +120,12 @@ fun ExportToServerWindow(viewModel: ViewModelShUp, onNavBarSwitch: () -> Unit) {
                     TableScreen(
                         viewModel = viewModel,
                         onSelected = { data: List<String> ->
-                            viewModel.addLineToSelected(data)
-                            println("Added - Nb Lignes selectionnées : ${viewModel.selectedLines.size} ; all selected lines : ${viewModel.selectedLines}")
+                            viewModel.exportTable.addLineToSelected(data)
+                            println("Added - Nb Lignes selectionnées : ${viewModel.exportTable.selectedLines.size} ; all selected lines : ${viewModel.exportTable.selectedLines}")
                         },
                         onUnselected = { data: List<String> ->
-                            viewModel.removeLineAsSelected(data)
-                            println("Removed - Nb Lignes selectionnées : ${viewModel.selectedLines.size} ; all selected lines : ${viewModel.selectedLines}")
+                            viewModel.exportTable.removeLineAsSelected(data)
+                            println("Removed - Nb Lignes selectionnées : ${viewModel.exportTable.selectedLines.size} ; all selected lines : ${viewModel.exportTable.selectedLines}")
                         }
                     )
                 }
@@ -146,8 +147,12 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
     val columnWeights = listOf(.12f, .23f, .16f, .16f, .14f, .13f)
     val iconColumnWeight = .06f
 
+    LaunchedEffect(viewModel.exportTable) {
+        viewModel.exportTable.getImportsFromWorkFolder()
+    }
+
     // Filtered data based on the filters
-    val visibleData = viewModel.testData.filter { lineData ->
+    val visibleData = viewModel.exportTable.testData.filter { lineData ->
         lineData.indices.all { index ->
             val query = filters.getOrNull(index).orEmpty().trim()
             query.isEmpty() || lineData[index].contains(query, ignoreCase = true)
@@ -181,7 +186,7 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
         ) {
             item {
                 // Header Row
-                val isAllSelected = viewModel.selectedLines.size == visibleData.size && visibleData.isNotEmpty()
+                val isAllSelected = viewModel.exportTable.selectedLines.size == visibleData.size && visibleData.isNotEmpty()
                 val iconCheckbox = if (isAllSelected) check_box else check_box_outline_blank
 
                 Row(
@@ -193,13 +198,13 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
                     TableCellIcon(iconCheckbox, "Sélectionner", iconColumnWeight, {
                         if (isAllSelected) {
                             visibleData.forEach { line ->
-                                viewModel.removeLineAsSelected(line)
+                                viewModel.exportTable.removeLineAsSelected(line)
                                 onUnselected(line)
                             }
                         } else {
                             visibleData.forEach { line ->
-                                if (!viewModel.selectedLines.contains(line)) {
-                                    viewModel.addLineToSelected(line)
+                                if (!viewModel.exportTable.selectedLines.contains(line)) {
+                                    viewModel.exportTable.addLineToSelected(line)
                                     onSelected(line)
                                 }
                             }
@@ -238,8 +243,11 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
                 filters.fill("") // Reset filters when hiding
             }
 
-            items(visibleData, key = { it.firstOrNull().orEmpty() }) { lineData ->
-                val isSelected = viewModel.selectedLines.contains(lineData)
+            itemsIndexed(
+                items = visibleData,
+                key = { index, _ -> index }
+            ) { _, lineData ->
+                val isSelected = viewModel.exportTable.selectedLines.contains(lineData)
                 val iconCheckbox = if (isSelected) check_box else check_box_outline_blank
                 val backgroundColor = if (isSelected) Color(0xEA, 0xDD, 0xFF) else Color.White
 
@@ -267,7 +275,7 @@ fun TableScreen(viewModel: ViewModelShUp, onSelected: (List<String>) -> Unit, on
                         "Supprimer la ligne",
                         iconColumnWeight,
                         onIconClick = {
-                            viewModel.deleteLine(lineData)
+                            viewModel.exportTable.deleteLine(lineData)
                         }
                     )
                 }

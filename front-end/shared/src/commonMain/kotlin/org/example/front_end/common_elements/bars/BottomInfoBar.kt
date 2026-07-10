@@ -188,7 +188,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                         disabledContainerColor = Color.Gray,
                                         disabledContentColor = Color.LightGray,
                                     ),
-                                    enabled = viewModel.enableImportBtn // false when no lines are selected
+                                    enabled = viewModel.exportTable.enableImportBtn // false when no lines are selected
                                 ){
                                     Row(
                                         modifier = Modifier
@@ -213,7 +213,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                         disabledContainerColor = Color.Gray,
                                         disabledContentColor = Color.LightGray,
                                     ),
-                                    enabled = viewModel.selectedLines.isNotEmpty()
+                                    enabled = viewModel.exportTable.selectedLines.isNotEmpty()
                                 ){
                                     Row(
                                         modifier = Modifier
@@ -230,7 +230,7 @@ fun BottomInfoBar(currentScreen: Windows, viewModel: ViewModelShUp, logger: Logg
                                     DeleteValidationDialog(
                                         onDismiss = { isDeleteValidationDialogOpened = false },
                                         onConfirm = {
-                                            viewModel.deleteSelectedLines()
+                                            viewModel.exportTable.deleteSelectedLines()
                                             isDeleteValidationDialogOpened = false
                                         }
                                     )
@@ -289,7 +289,7 @@ fun DeleteValidationDialog(
 @Composable
 fun ExportInfoPanel(viewModel: ViewModelShUp){
     Column {
-        when(viewModel.selectedLines.size){
+        when(viewModel.exportTable.selectedLines.size){
             0-> { // No lines selected
                 Text(
                     text = "Informations générales",
@@ -302,10 +302,10 @@ fun ExportInfoPanel(viewModel: ViewModelShUp){
                 ) {
 
                     item {
-                        Text("Examens importés : ${viewModel.testData.size}")
+                        Text("Examens importés : ${viewModel.exportTable.testData.size}")
                     }
                     item{
-                        Text("Examens en erreur : ${viewModel.testData.count { it[5] == "ERROR" }}")
+                        Text("Examens en erreur : ${viewModel.exportTable.testData.count { it[5] == "ERROR" }}")
                     }
                 }
             }
@@ -317,7 +317,7 @@ fun ExportInfoPanel(viewModel: ViewModelShUp){
                     modifier = Modifier.padding(10.dp),
                 )
 
-                val line = viewModel.selectedLines.first()
+                val line = viewModel.exportTable.selectedLines.first()
                 when(line[5]) {
                     "FINISHED" ->{
                         // display the imported DICOM series information
@@ -547,9 +547,6 @@ fun DownloadBars(viewModel: ViewModelShUp, logger: LoggerShUP) {
                     // CURRENTSTEP
                     Text(
                         text = importProgress.currentStep
-                    )
-                    Text(
-                        text = importProgress.done.toString()
                     )
                     // SUCCESS
                     Text(
